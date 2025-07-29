@@ -30,6 +30,7 @@ class Player(Document):
 
 class Team(Document):
     email: EmailStr
+    hashed_password: str
     team_name: str
     tag: Optional[str] = None
     logo_url: Optional[str] = None
@@ -47,6 +48,7 @@ class Team(Document):
 
 class TeamCreate(BaseModel):
     email: EmailStr
+    password: str
     team_name: str
     tag: Optional[str] = None
     main_game: Optional[str] = None
@@ -69,3 +71,7 @@ class PlayerCreate(BaseModel):
     nickname: str
     full_name: Optional[str] = None
     role: Optional[str] = None
+    
+class Token(BaseModel):
+    access_token: str
+    token_type: str
