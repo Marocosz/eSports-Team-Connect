@@ -5,7 +5,7 @@ from .config import settings
 
 async def init_db():
     client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGODB_URI)
-    database = client.get_default_database()
+    database = client[settings.DATABASE_NAME]
 
     await init_beanie(
         database=database,

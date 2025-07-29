@@ -1,9 +1,15 @@
-import os
-from dotenv import load_dotenv
+# app/config.py
 
-load_dotenv()
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class Settings:
-    MONGODB_URI: str = os.getenv("MONGODB_URI")
+class Settings(BaseSettings):
+    # As variáveis que você quer ler do arquivo .env
+    MONGODB_URI: str
+    DATABASE_NAME: str
 
+    # Configuração para dizer ao Pydantic onde encontrar o arquivo .env
+    model_config = SettingsConfigDict(env_file=".env")
+
+
+# Cria uma instância única das configurações para ser usada no resto do projeto
 settings = Settings()

@@ -20,8 +20,8 @@ async def create_team(team_data: TeamCreate):
 @router.get("/teams", response_model=List[TeamOut])
 async def get_all_teams():
     """Lista todos os times com seus jogadores."""
-    # .fetch_links() é o comando do Beanie para buscar os dados dos jogadores linkados
-    teams = await Team.find_all().fetch_links().to_list()
+    # Agora, 'fetch_links=True' é passado como um parâmetro para o find_all
+    teams = await Team.find_all(fetch_links=True).to_list()
     return teams
     
 @router.get("/teams/{team_id}", response_model=TeamOut)
