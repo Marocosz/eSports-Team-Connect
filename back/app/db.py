@@ -4,6 +4,8 @@ from .models import Team, Player # <--- IMPORTE OS DOIS MODELOS
 from .config import settings
 
 async def init_db():
+    print("Tentando conectar com a URI:", settings.MONGODB_URI)
+
     client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGODB_URI)
     database = client[settings.DATABASE_NAME]
 
