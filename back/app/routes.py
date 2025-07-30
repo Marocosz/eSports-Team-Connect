@@ -72,7 +72,7 @@ async def get_my_team_profile(current_team: Annotated[Team, Depends(get_current_
     """Retorna o perfil do time atualmente logado."""
     # A dependência `get_current_team` já busca o time no banco e o retorna.
     # E como a `TeamOut` espera os players, precisamos carregar os links.
-    await current_team.fetch_links(Team.players)
+    await current_team.fetch_link(Team.players)
     return current_team
 
 @router.post("/teams/{team_id}/players", response_model=PlayerOut, tags=["Players (Protected)"])

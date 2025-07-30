@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - eSports Team Connect</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/auth.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>eSports Team Connect</h1>
+        </header>
+
+        <main>
+            <div id="login-container" class="form-container">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <input type="email" id="login-email" placeholder="Email" required>
+                    <input type="password" id="login-password" placeholder="Senha" required>
+                    <button type="submit" class="btn">Entrar</button>
+                </form>
+                <p>Não tem uma conta? <a href="#" id="show-register">Registre-se</a></p>
+            </div>
+
+            <div id="register-container" class="form-container" style="display: none;">
+                <h2>Criar Conta de Time</h2>
+                <form id="register-form">
+                    <input type="email" id="register-email" placeholder="Email" required>
+                    <input type="text" id="register-team-name" placeholder="Nome do Time" required>
+                    <input type="password" id="register-password" placeholder="Senha" required>
+                    <input type="text" id="register-main-game" placeholder="Jogo Principal">
+                    <button type="submit" class="btn">Registrar</button>
+                </form>
+                <p>Já tem uma conta? <a href="#" id="show-login">Faça login</a></p>
+            </div>
+
+            <div id="message-container"></div>
+        </main>
+    </div>
+</body>
+</html>

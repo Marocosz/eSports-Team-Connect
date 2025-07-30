@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware # <--- IMPORTE O MIDDLEWARE
 
 # Lista de origens que podem fazer requisições à nossa API
 origins = [
-    "http://localhost:5173", # Endereço do nosso front-end React
+    "http://127.0.0.1:5500",
 ]
 
 @asynccontextmanager
