@@ -136,33 +136,41 @@ async def get_all_posts():
     return posts_out
 
 
-# Substitua a função toggle_like_post
 @router.post("/posts/{post_id}/like", response_model=PostOut, tags=["Posts"])
 async def toggle_like_post(
     post_id: PydanticObjectId,
     current_team: Annotated[Team, Depends(get_current_team)]
 ):
+    """
+    Adiciona ou remove um like de um post.
+    """
     post = await Post.get(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado.")
 
-    # A lógica de like/unlike
+    # Lógica de "toggle" para curtir/descurtir
     found = False
     for team_link in post.likes:
-        if team_link.id == current_team.id:
+        if team_link.to_ref().id == current_team.id:
             post.likes.remove(team_link)
             found = True
             break
+    
     if not found:
         post.likes.append(current_team)
     
     await post.save()
     
-    await post.fetch_links()
+    # Prepara a resposta correta
+    # --- CORREÇÃO AQUI ---
+    # Usamos .fetch_link() no singular e especificamos o campo 'author'
+    await post.fetch_link(Post.author)
+    
     post_dict = post.model_dump()
-    post_dict["likes"] = [like.id for like in post.likes] # Converte Links para IDs
+    post_dict["likes"] = [like.to_ref().id for like in post.likes]
     post_dict["likes_count"] = len(post.likes)
     return PostOut(**post_dict)
+
 
 @router.post("/posts/{post_id}/comments", response_model=Comment, status_code=status.HTTP_201_CREATED, tags=["Posts"])
 async def create_comment_on_post(

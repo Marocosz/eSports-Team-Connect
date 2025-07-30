@@ -1,124 +1,65 @@
-/* assets/css/style.css - Versão Corrigida Sem 'composes' */
+/* assets/css/style.css - Versão Final e Organizada */
 
-/* -- 1. Variáveis de Design -- */
+/* ==========================================================================
+   1. Variáveis de Design e Estilos Globais
+   ========================================================================== */
 :root {
     --color-background: #111119;
     --color-surface: #1a1a24;
     --color-border: #3a3a5a;
     --color-text-primary: #f0f0f0;
     --color-text-secondary: #a0a0b0;
-    --color-glow-start: #8A2BE2; /* Roxo */
-    --color-glow-end: #FF1493;   /* Magenta */
+    --color-glow-start: #8A2BE2;
+    /* Roxo */
+    --color-glow-end: #FF1493;
+    /* Magenta */
     --font-family: 'Inter', sans-serif;
 }
 
-/* -- 2. Estilos Globais e de Layout -- */
 body {
     font-family: var(--font-family);
     background-color: var(--color-background);
     background-image: radial-gradient(circle at 10% 20%, rgba(138, 43, 226, 0.1), transparent 30%),
-                      radial-gradient(circle at 90% 80%, rgba(255, 20, 147, 0.1), transparent 30%);
+        radial-gradient(circle at 90% 80%, rgba(255, 20, 147, 0.1), transparent 30%);
     color: var(--color-text-primary);
     margin: 0;
     padding: 2rem;
-    padding-top: 80px; /* Espaço para a navbar fixa */
+    /* Espaçamento no topo para a navbar fixa, apenas em páginas de dashboard */
+    padding-top: 80px;
 }
 
-/* Container de 2 colunas usando CSS Grid */
-.dashboard-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    gap: 2rem;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    align-items: flex-start;
-}
-
-/* Container para a página de login */
-.container {
-    width: 100%;
-    max-width: 1200px;
-    text-align: center;
-}
-
-header h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    background: linear-gradient(90deg, var(--color-glow-start), var(--color-glow-end));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-fill-color: transparent;
-    margin-bottom: 3rem;
-}
-
-/* -- 3. Estilos dos Formulários (Inputs, Botões) -- */
-.form-container {
-    background-color: transparent;
-    padding: 0;
-}
-
-form {
+/* Classe especial para centralizar páginas como a de login */
+body.centered-page {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    max-width: 400px;
-    margin: 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding-top: 2rem;
+    /* Reseta o padding para centralizar corretamente */
 }
 
-input, textarea {
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid var(--color-border);
-    padding: 0.75rem 0.25rem;
-    color: var(--color-text-primary);
-    font-size: 1rem;
-    font-family: var(--font-family);
-    transition: border-color 0.3s ease;
-    border-radius: 0; /* Garante que não tenha borda arredondada */
+a,
+a:visited {
+    color: var(--color-glow-start);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
 }
 
-input:focus, textarea:focus {
-    outline: none;
-    border-bottom-color: var(--color-glow-end);
+a:hover {
+    color: var(--color-glow-end);
 }
 
-textarea {
-    resize: vertical;
-    min-height: 80px;
-    border: 2px solid var(--color-border);
-    border-radius: 8px;
-}
-
-.btn {
-    background: transparent;
-    border: 2px solid transparent;
-    background-image: linear-gradient(var(--color-surface), var(--color-surface)), 
-                      linear-gradient(90deg, var(--color-glow-start), var(--color-glow-end));
-    background-origin: border-box;
-    background-clip: padding-box, border-box;
-    color: var(--color-text-primary);
-    padding: 0.75rem;
-    font-size: 1rem;
-    font-weight: 700;
-    font-family: var(--font-family);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none; /* Para caso seja usado em um link */
-}
-
-.btn:hover {
-    color: white;
-    box-shadow: 0 0 15px rgba(255, 20, 147, 0.4);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-}
-
-/* -- 4. Estilos da Barra de Navegação -- */
+/* ==========================================================================
+   2. Layout Principal (Navbar, Containers, etc.)
+   ========================================================================== */
 .navbar {
     width: 100%;
-    background-color: var(--color-surface);
+    background-color: rgba(26, 26, 36, 0.8);
+    /* Fundo semi-transparente */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--color-border);
     padding: 0 2rem;
     box-sizing: border-box;
@@ -130,55 +71,142 @@ textarea {
 
 .nav-container {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     max-width: 1200px;
     margin: 0 auto;
     height: 60px;
 }
+
 .nav-logo {
     color: white;
     font-weight: 700;
     font-size: 1.5rem;
-    text-decoration: none;
 }
+
 .nav-menu {
     list-style: none;
     display: flex;
     gap: 2rem;
-    margin: 0;
+    margin: 0 auto;
+    /* Centraliza o menu */
     padding: 0;
 }
-.nav-link {
-    color: var(--color-text-secondary);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
-}
+
 .nav-link:hover {
-    color: var(--color-glow-start);
-}
-.nav-button {
-    padding: 0.5rem 1rem; /* Padding específico para o botão da navbar */
+    color: white;
 }
 
-/* -- 5. Estilos do Feed e Cards -- */
-.sidebar {
-    /* ... estilos da sidebar ... */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: flex-start;
 }
+
+.container {
+    /* Usado na página de login */
+    width: 100%;
+    max-width: 1200px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--color-glow-start), var(--color-glow-end));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -text-fill-color: transparent;
+    margin-bottom: 3rem;
+}
+
+/* ==========================================================================
+   3. Componentes (Formulários, Botões, Cards)
+   ========================================================================== */
+
+/* --- Formulários --- */
+.form-container {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+input {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--color-border);
+    padding: 0.75rem 0.25rem;
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    font-family: var(--font-family);
+    transition: border-color 0.3s ease;
+    border-radius: 0;
+}
+
+input:focus {
+    outline: none;
+    border-bottom-color: var(--color-glow-end);
+}
+
+/* --- Botões --- */
+.btn {
+    background: transparent;
+    border: 2px solid transparent;
+    background-image: linear-gradient(var(--color-surface), var(--color-surface)),
+        linear-gradient(90deg, var(--color-glow-start), var(--color-glow-end));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    color: var(--color-text-primary);
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: var(--font-family);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    color: white;
+    box-shadow: 0 0 15px rgba(255, 20, 147, 0.4);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.btn.btn-small {
+    /* Classe para botões menores, como o de comentar */
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+}
+
+.nav-button {
+    padding: 0.5rem 1rem;
+}
+
+/* --- Feed e Posts --- */
 .main-feed {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
+
 .post-card {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.5rem;
     text-align: left;
+    margin-bottom: 1.5rem;
 }
-/* ... resto dos seus estilos de post, like, comentário ... */
 
 .post-header {
     display: flex;
@@ -197,129 +225,66 @@ textarea {
 }
 
 .post-timestamp {
-    margin-left: auto; /* Alinha a data à direita */
+    margin-left: auto;
     color: var(--color-text-secondary);
     font-size: 0.85rem;
 }
 
 .post-content {
     line-height: 1.6;
-    white-space: pre-wrap; /* Preserva quebras de linha e espaços */
+    white-space: pre-wrap;
+    padding-bottom: 1rem;
 }
 
-/* --- Estilos da Barra de Navegação (Navbar) --- */
-.navbar {
-    width: 100%;
-    background-color: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    padding: 0 2rem;
-    box-sizing: border-box; /* Garante que o padding não afete a largura */
-    position: fixed; /* Fixa a barra no topo */
-    top: 0;
-    left: 0;
-    z-index: 1000;
+
+/* --- Ações e Comentários do Post (Layout Novo e Refinado) --- */
+.post-comments {
+    border-top: 1px solid var(--color-border);
+    margin-top: 1rem;
+    padding-top: 1rem;
 }
 
-.nav-container {
+/* O container principal que alinha tudo em uma única linha */
+.comment-actions-wrapper {
     display: flex;
     justify-content: space-between;
+    /* Empurra o form para a esquerda e as ações para a direita */
     align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-    height: 60px;
+    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
-.nav-logo {
-    color: white;
-    font-weight: 700;
-    font-size: 1.5rem;
-    text-decoration: none;
-}
-
-.nav-menu {
-    list-style: none;
+/* O formulário de comentário (input + botão) */
+.comment-form {
     display: flex;
-    gap: 2rem;
-    margin: 0;
-    padding: 0;
+    align-items: center;
+    flex-grow: 1;
+    /* Faz o formulário tentar ocupar o máximo de espaço à esquerda */
+    gap: 0.5rem;
+    flex-direction: row;
 }
 
-.nav-link {
-    color: var(--color-text-secondary);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
-}
-
-.nav-link:hover {
-    color: var(--color-glow-start);
-}
-
-.nav-button {
-    /* Reutiliza o estilo do .btn mas com menos padding */
-    composes: btn;
+.comment-form input {
+    flex-grow: 1;
+    /* Faz o input esticar para preencher o espaço */
+    border-radius: 50px;
     padding: 0.5rem 1rem;
-}
-
-/* --- Estilos do Layout Principal (Dashboard) --- */
-
-/* Ajusta o body para considerar a navbar fixa */
-body {
-    padding-top: 80px; /* Espaço para a navbar (60px) + margem */
-}
-
-/* Container de 2 colunas usando CSS Grid */
-.dashboard-container {
-    display: grid;
-    grid-template-columns: 250px 1fr; /* Coluna esquerda de 250px, direita ocupa o resto */
-    gap: 2rem;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    align-items: flex-start;
-}
-
-/* Sidebar (Coluna Esquerda) */
-.sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.sidebar-widget {
-    background-color: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 1.5rem;
 }
 
-.sidebar-widget h3 {
-    margin-top: 0;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 0.75rem;
+/* Classe para o botão "Comentar" ficar menor */
+.btn.btn-small {
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
 }
 
-/* Feed Principal (Coluna Direita) */
-.main-feed {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-/* Remove o footer da página principal para um visual mais limpo */
-footer {
-    display: none;
-}
-
-/* Adicione estas regras no final do seu assets/css/style.css */
-
-/* --- Estilos para Ações do Post (Like/Comment) --- */
+/* O container dos ícones de like e comentário à direita */
 .post-actions {
     display: flex;
     gap: 1.5rem;
-    padding: 1rem 0;
-    border-top: 1px solid var(--color-border);
-    margin-top: 1rem;
+    /* Aumenta o espaço entre os ícones */
+    align-items: center;
 }
 
 .action-item {
@@ -334,7 +299,7 @@ footer {
     background: none;
     border: none;
     color: var(--color-text-secondary);
-    font-size: 1.2rem; /* Tamanho do ícone */
+    font-size: 1.2rem;
     cursor: pointer;
     padding: 0;
     transition: color 0.2s, transform 0.2s;
@@ -345,22 +310,15 @@ footer {
     transform: scale(1.1);
 }
 
-/* style.css */
 .like-button.liked i {
     color: var(--color-glow-end);
 }
-/* --- Estilos Melhorados para Comentários --- */
-.post-comments {
-    border-top: 1px solid var(--color-border);
-    margin-top: 1rem;
-    padding-top: 1rem;
-}
 
+/* Estilos para a lista de comentários que já tínhamos */
 .comment-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    margin-bottom: 1rem;
 }
 
 .comment {
@@ -378,25 +336,119 @@ footer {
     color: var(--color-glow-start);
 }
 
-.comment-form {
-    display: flex;
-    gap: 0.5rem;
+/* --- Mensagens de Status --- */
+#message-container {
     margin-top: 1rem;
+    font-weight: 600;
+    min-height: 24px;
 }
 
-.comment-form input {
-    flex-grow: 1; /* Faz o input ocupar o espaço disponível */
-    border-radius: 50px; /* Bordas arredondadas */
-    padding: 0.5rem 1rem;
+.success-message {
+    color: var(--color-glow-start);
 }
 
-.comment-form button {
-    border-radius: 50px;
-    padding: 0.5rem 1rem;
+.error-message {
+    color: var(--color-glow-end);
 }
 
-.like-button {
-    width: 40px;
-    height: 40px;
-    border: 2px solid red !important; /* Borda vermelha para ser óbvio */
+
+/* Adicione estas regras no final do seu assets/css/style.css */
+
+/* --- Estilos para o Criador de Post --- */
+.post-creator {
+    display: flex;
+    gap: 1rem;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2.5rem;
+    /* Aumenta o espaço antes do feed */
+}
+
+.creator-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-image: linear-gradient(45deg, var(--color-glow-start), var(--color-glow-end));
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    /* Impede que o avatar encolha */
+}
+
+.creator-form {
+    width: 100%;
+}
+
+/* Remove a borda inferior do formulário dentro do criador de post */
+.creator-form textarea {
+    border: none;
+    background-color: var(--color-background);
+    min-height: 100px;
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: 1rem;
+}
+
+.creator-form textarea:focus {
+    border: none;
+    box-shadow: 0 0 0 2px var(--color-glow-start);
+    /* Adiciona um brilho ao focar */
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+.char-counter {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+/* Adicione estas regras no final do seu assets/css/style.css */
+
+/* --- Estilo Único para o Criador de Post --- */
+.post-creator {
+    /* Adiciona uma borda com gradiente para destacar */
+    border: 2px solid transparent;
+    background-image: linear-gradient(var(--color-surface), var(--color-surface)), 
+                      linear-gradient(135deg, var(--color-glow-start), var(--color-glow-end));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 0 20px rgba(138, 43, 226, 0.2); /* Adiciona um brilho sutil */
+}
+
+/* --- Estilo para a Divisória Moderna --- */
+.feed-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 2rem 0; /* Espaçamento vertical */
+}
+
+/* Linha à esquerda do texto */
+.feed-divider::before,
+/* Linha à direita do texto */
+.feed-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Estilo do texto no meio da divisória */
+.divider-text {
+    padding: 0 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
 }

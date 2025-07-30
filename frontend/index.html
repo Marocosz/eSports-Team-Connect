@@ -9,14 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <link rel="stylesheet" href="assets/css/style.css">
-
-    <script src="assets/js/home.js" defer></script> 
+    <script src="assets/js/home.js" defer></script>
 </head>
-
 
 <body>
     <nav class="navbar">
@@ -30,7 +27,7 @@
                     <a href="profile.html" class="nav-link">Meu Perfil</a>
                 </li>
             </ul>
-            <button id="logout-button" class="nav-button">Sair</button>
+            <button id="logout-button" class="btn nav-button">Sair</button>
         </div>
     </nav>
 
@@ -46,19 +43,30 @@
                 <p>(Em breve: Posts com mais likes e comentários.)</p>
             </div>
         </aside>
-
+        
         <main class="main-feed">
-            <div class="create-post-container">
-                <h2>No que você está pensando, <span id="team-name-placeholder">Time</span>?</h2>
-                <form id="create-post-form">
-                    <textarea id="post-content" placeholder="Escreva sua publicação aqui..." maxlength="280"
-                        required></textarea>
-                    <button type="submit" class="btn">Publicar</button>
-                </form>
+            <div class="post-creator">
+                <div class="creator-avatar" id="creator-avatar">
+                    </div>
+                <div class="creator-form">
+                    <form id="create-post-form">
+                        <h2>No que você está pensando, <span id="team-name-placeholder">Time</span>?</h2>
+                        
+                        <textarea id="post-content" placeholder="Escreva sua publicação aqui..." maxlength="280" required></textarea>
+                        <div class="form-actions">
+                            <span class="char-counter" id="char-counter">0 / 280</span>
+                            <button type="submit" class="btn btn-small">Publicar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="feed-divider">
+                <span class="divider-text">Feed da Comunidade</span>
             </div>
 
             <div class="post-feed" id="post-feed">
-            </div>
+                </div>
         </main>
     </div>
 
