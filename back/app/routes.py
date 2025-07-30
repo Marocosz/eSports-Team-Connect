@@ -5,7 +5,7 @@ from typing import List, Annotated
 from beanie import PydanticObjectId
 from datetime import timedelta
 
-from .models import Team, Player, TeamCreate, TeamOut, PlayerCreate, PlayerOut, Token
+from .models import Team, Player, TeamCreate, TeamOut, PlayerCreate, PlayerOut, Token, Post, PostCreate, PostOut, Comment, PostAuthor, CommentCreate
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
 from .config import settings
@@ -101,3 +101,90 @@ async def add_player_to_team(
     await current_team.save()
 
     return player
+
+@router.post("/posts", response_model=PostOut, status_code=status.HTTP_201_CREATED, tags=["Posts"])
+async def create_post(
+    post_data: PostCreate,
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """
+    Cria um novo post. Apenas para usuários (times) autenticados.
+    """
+    post = Post(content=post_data.content, author=current_team)
+    await post.insert()
+
+    # Para que o PostOut funcione, precisamos carregar os dados do autor
+    await post.fetch_link(Post.author)
+
+    # --- CORREÇÃO AQUI ---
+    # Manualmente cria a resposta PostOut, calculando o likes_count
+    post_dict = post.model_dump()
+    post_dict["likes_count"] = len(post.likes) # Será 0 para um post novo
+
+    return PostOut(**post_dict)
+
+# Substitua a função get_all_posts
+@router.get("/posts", response_model=List[PostOut], tags=["Posts"])
+async def get_all_posts():
+    posts = await Post.find_all(fetch_links=True).sort(-Post.created_at).to_list()
+    posts_out = []
+    for post in posts:
+        post_dict = post.model_dump()
+        post_dict["likes"] = [like.id for like in post.likes] # Converte Links para IDs
+        post_dict["likes_count"] = len(post.likes)
+        posts_out.append(PostOut(**post_dict))
+    return posts_out
+
+
+# Substitua a função toggle_like_post
+@router.post("/posts/{post_id}/like", response_model=PostOut, tags=["Posts"])
+async def toggle_like_post(
+    post_id: PydanticObjectId,
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    post = await Post.get(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post não encontrado.")
+
+    # A lógica de like/unlike
+    found = False
+    for team_link in post.likes:
+        if team_link.id == current_team.id:
+            post.likes.remove(team_link)
+            found = True
+            break
+    if not found:
+        post.likes.append(current_team)
+    
+    await post.save()
+    
+    await post.fetch_links()
+    post_dict = post.model_dump()
+    post_dict["likes"] = [like.id for like in post.likes] # Converte Links para IDs
+    post_dict["likes_count"] = len(post.likes)
+    return PostOut(**post_dict)
+
+@router.post("/posts/{post_id}/comments", response_model=Comment, status_code=status.HTTP_201_CREATED, tags=["Posts"])
+async def create_comment_on_post(
+    post_id: PydanticObjectId,
+    comment_data: CommentCreate, # <-- MUDANÇA AQUI
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """ Adiciona um novo comentário a um post. """
+    post = await Post.get(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post não encontrado.")
+
+    author_data = PostAuthor(
+        id=current_team.id,
+        team_name=current_team.team_name,
+        tag=current_team.tag
+    )
+    
+    # Usa o conteúdo de comment_data.content
+    new_comment = Comment(author=author_data, content=comment_data.content) # <-- MUDANÇA AQUI
+    
+    post.comments.append(new_comment)
+    await post.save()
+    
+    return new_comment

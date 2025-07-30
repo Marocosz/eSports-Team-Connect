@@ -1,6 +1,6 @@
 import motor.motor_asyncio
 from beanie import init_beanie
-from .models import Team, Player # <--- IMPORTE OS DOIS MODELOS
+from .models import Team, Player, Post
 from .config import settings
 
 async def init_db():
@@ -12,8 +12,9 @@ async def init_db():
     await init_beanie(
         database=database,
         document_models=[
-            Team,    # <--- ADICIONE O Team
-            Player   # <--- ADICIONE O Player
+            Team,  
+            Player,
+            Post,
         ]
     )
     print("Conexão com o banco de dados inicializada com sucesso.")
