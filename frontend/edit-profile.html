@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Perfil - eSports Team Connect</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/edit-profile.js" defer></script> 
+</head>
+<body class="centered-page">
+    <div class="container">
+        <header>
+            <h1>Editar Perfil</h1>
+        </header>
+
+        <main>
+            <div class="form-container">
+                <form id="edit-profile-form">
+                    <label for="team_name">Nome do Time</label>
+                    <input type="text" id="team_name" name="team_name">
+                    
+                    <label for="tag">Tag</label>
+                    <input type="text" id="tag" name="tag">
+
+                    <label for="main_game">Jogo Principal</label>
+                    <input type="text" id="main_game" name="main_game">
+
+                    <label for="bio">Bio</label>
+                    <textarea id="bio" name="bio" rows="4"></textarea>
+
+                    <label for="discord">Discord</label>
+                    <input type="text" id="discord" name="discord">
+
+                    <label for="twitter">Twitter</label>
+                    <input type="text" id="twitter" name="twitter">
+
+                    <button type="submit" class="btn">Salvar Alterações</button>
+                    <a href="profile.html" class="link-cancel">Cancelar</a>
+                </form>
+            </div>
+            <div id="message-container"></div>
+        </main>
+    </div>
+</body>
+</html>

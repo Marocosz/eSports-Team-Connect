@@ -13,6 +13,7 @@
 
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="assets/js/home.js" defer></script>
+    <script src="assets/js/main.js" defer></script>
 </head>
 
 <body>
@@ -20,11 +21,13 @@
         <div class="nav-container">
             <a href="index.html" class="nav-logo">eSports Connect</a>
             <ul class="nav-menu">
+                <li class="nav-item"><a href="index.html" class="nav-link">Feed</a></li>
+                <li class="nav-item"><a href="profile.html" class="nav-link">Meu Perfil</a></li>
                 <li class="nav-item">
-                    <a href="index.html" class="nav-link">Feed</a>
-                </li>
-                <li class="nav-item">
-                    <a href="profile.html" class="nav-link">Meu Perfil</a>
+                    <a href="profile.html" class="nav-link notification-bell">
+                        <i class="bi bi-bell-fill"></i>
+                        <span id="notification-count" class="notification-count" style="display: none;"></span>
+                    </a>
                 </li>
             </ul>
             <button id="logout-button" class="btn nav-button">Sair</button>
@@ -35,24 +38,27 @@
 
         <aside class="sidebar">
             <div class="sidebar-widget">
-                <h3>Atividade Recente</h3>
-                <p>(Em breve: Atividades de amigos, convites para treinos, etc.)</p>
+                <h3>Descobrir Times</h3>
+                <ul id="discover-teams-list" class="discover-list">
+                    <li>Carregando...</li>
+                </ul>
             </div>
             <div class="sidebar-widget">
                 <h3>Posts Populares</h3>
                 <p>(Em breve: Posts com mais likes e comentários.)</p>
             </div>
         </aside>
-        
+
         <main class="main-feed">
             <div class="post-creator">
                 <div class="creator-avatar" id="creator-avatar">
-                    </div>
+                </div>
                 <div class="creator-form">
                     <form id="create-post-form">
                         <h2>No que você está pensando, <span id="team-name-placeholder">Time</span>?</h2>
-                        
-                        <textarea id="post-content" placeholder="Escreva sua publicação aqui..." maxlength="280" required></textarea>
+
+                        <textarea id="post-content" placeholder="Escreva sua publicação aqui..." maxlength="280"
+                            required></textarea>
                         <div class="form-actions">
                             <span class="char-counter" id="char-counter">0 / 280</span>
                             <button type="submit" class="btn btn-small">Publicar</button>
@@ -66,8 +72,19 @@
             </div>
 
             <div class="post-feed" id="post-feed">
-                </div>
+            </div>
         </main>
+    </div>
+
+    <div id="notification-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Notificações</h2>
+                <button id="close-modal-btn" class="close-button">&times;</button>
+            </div>
+            <div id="notification-list" class="social-list">
+            </div>
+        </div>
     </div>
 
 </body>

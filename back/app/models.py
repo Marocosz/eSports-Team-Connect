@@ -26,6 +26,13 @@ class Comment(BaseModel):
     author: PostAuthor
     content: str
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
+    
+class FriendInfo(BaseModel):
+    """Representação simplificada de um time para listas de amigos."""
+    id: PydanticObjectId
+    team_name: str
+    tag: Optional[str] = None
+    main_game: Optional[str] = None
 
 # -----------------------------------------------------------------------------
 # Modelos de Player
@@ -72,9 +79,14 @@ class Team(Document):
     bio: Optional[str] = None
     main_game: Optional[str] = None
     socials: Optional[Socials] = None
+    # --- NOVOS CAMPOS DE AMIZADE ---
+    friends: List[Link["Team"]] = []
+    friend_requests_sent: List[Link["Team"]] = []
+    friend_requests_received: List[Link["Team"]] = []
     # Lista de links para os jogadores que fazem parte deste time.
     players: List[Link[Player]] = []
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
+    
 
     class Settings:
         name = "teams"
@@ -99,6 +111,15 @@ class TeamOut(BaseModel):
     socials: Optional[Socials] = None
     players: List[PlayerOut] = [] # A API retornará os dados completos dos jogadores.
     created_at: datetime.datetime
+    
+class TeamUpdate(BaseModel):
+    """Modelo para receber os dados de atualização de um time via API."""
+    team_name: Optional[str] = None
+    tag: Optional[str] = None
+    logo_url: Optional[str] = None
+    bio: Optional[str] = None
+    main_game: Optional[str] = None
+    socials: Optional[Socials] = None
 
 # -----------------------------------------------------------------------------
 # Modelos de Post
