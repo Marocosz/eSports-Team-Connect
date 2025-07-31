@@ -12,16 +12,15 @@ from passlib.context import CryptContext
 from .config import settings
 from .models import Team
 
-# --- Configuração de Hashing de Senha ---
+# --- Configuração de Hashing de Senha
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# --- Esquema de Autenticação ---
+# --- Esquema de Autenticação
 # Esta linha cria um "esquema" que o FastAPI usa para a documentação e para extrair o token.
 # Ele espera um token na rota POST /login, que nós criamos em routes.py.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
-# --- Funções de Segurança ---
-
+# --- Funções de Segurança
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifica se uma senha em texto puro corresponde a um hash."""
     return pwd_context.verify(plain_password, hashed_password)
@@ -43,8 +42,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-# --- Dependência de Autenticação ---
 
+# --- Dependência de Autenticação
 async def get_current_team(token: Annotated[str, Depends(oauth2_scheme)]) -> Team:
     """
     Dependência para ser usada em rotas protegidas.

@@ -1,5 +1,3 @@
-# app/routes.py - VERSÃO COMPLETA E CORRIGIDA
-
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List, Annotated
 from beanie import PydanticObjectId
@@ -14,7 +12,6 @@ from .models import (
     CommentCreate,
     Token, FriendInfo, TeamUpdate
 )
-# Importação de todas as funções de segurança e configuração
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
 from .config import settings
@@ -26,6 +23,7 @@ router = APIRouter()
 # --- Rotas de Autenticação e Registro ---
 # =============================================================================
 
+# responde_model=TeamOut para deifinir como será o retorno desse endpoint 
 @router.post("/teams", response_model=TeamOut, status_code=status.HTTP_201_CREATED, tags=["Auth & Registration"])
 async def create_team(team_data: TeamCreate):
     """Cria um novo time (registro de conta). Esta é uma rota pública."""
@@ -34,14 +32,15 @@ async def create_team(team_data: TeamCreate):
         raise HTTPException(status_code=400, detail="Um time com este email já foi registrado.")
     
     hashed_pass = hash_password(team_data.password)
-    team_dict = team_data.model_dump()
-    team_dict.pop("password")
-    team = Team(**team_dict, hashed_password=hashed_pass)
+    team_dict = team_data.model_dump()  # Transforma o team_data em um dict
+    team_dict.pop("password")  # Remove a senha
+    team = Team(**team_dict, hashed_password=hashed_pass) # Passa as informações para o banco de dados criar o item da coleção
     
-    await team.insert()
+    await team.insert()  # Aq de fato o documento é criado na coleçaõ
     # Retornar o objeto team é seguro pois o response_model=TeamOut filtra os campos
     return team
 
+# Vai retornar um Token
 @router.post("/login", response_model=Token, tags=["Auth & Registration"])
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     """Autentica um time e retorna um token de acesso."""
@@ -49,8 +48,10 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     if not team or not verify_password(form_data.password, team.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos", headers={"WWW-Authenticate": "Bearer"})
     
+    # Cria o token do login para o usuário
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={"sub": str(team.id)}, expires_delta=access_token_expires)
+    
     
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -58,12 +59,15 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 # --- Rotas Públicas de Visualização ---
 # =============================================================================
 
+# Retorna uma lista de times no modelo TeamOut
 @router.get("/teams", response_model=List[TeamOut], tags=["Teams & Profiles"])
 async def get_all_teams():
     """Lista todos os times com seus jogadores. Rota pública."""
     teams = await Team.find_all(fetch_links=True).to_list()
     return teams
 
+
+# Retorna o team por ID no modelo TeamOut
 @router.get("/teams/{team_id}", response_model=TeamOut, tags=["Teams & Profiles"])
 async def get_team(team_id: PydanticObjectId):
     """Busca um time específico pelo seu ID. Rota pública."""
@@ -72,9 +76,12 @@ async def get_team(team_id: PydanticObjectId):
         raise HTTPException(status_code=404, detail="Time não encontrado.")
     return team
 
+# Retorna uma lista de PostOut
 @router.get("/posts", response_model=List[PostOut], tags=["Posts"])
 async def get_all_posts():
     """Lista todos os posts do feed, do mais novo para o mais antigo. Rota pública."""
+    # fetch_links para: "Quando você encontrar os posts, olhe para os campos que são Links (como o campo author)"
+    # ordenado por data de criação
     posts = await Post.find_all(fetch_links=True).sort(-Post.created_at).to_list()
     
     posts_out = []
@@ -89,11 +96,13 @@ async def get_all_posts():
 # --- Rotas Protegidas (Exigem Login) ---
 # =============================================================================
 
+# Annotated: Ele separa o "o quê" (o tipo final, ex: Team) do "como" (a instrução para obtê-lo, ex: Depends(...)).
 @router.get("/teams/me/profile", response_model=TeamOut, tags=["Profile (Protected)"])
 async def get_my_team_profile(current_team: Annotated[Team, Depends(get_current_team)]):
     """Retorna o perfil do time atualmente logado."""
-    await current_team.fetch_link(Team.players)
+    await current_team.fetch_link(Team.players)  # Fetch_link para pegar os dados dos jogadores
     return current_team
+
 
 @router.post("/teams/{team_id}/players", response_model=PlayerOut, tags=["Players (Protected)"])
 async def add_player_to_team(team_id: PydanticObjectId, player_data: PlayerCreate, current_team: Annotated[Team, Depends(get_current_team)]):
@@ -154,7 +163,7 @@ async def create_comment_on_post(post_id: PydanticObjectId, comment_data: Commen
     await post.save()
     return new_comment
 
-# --- Rotas para Amizades (Protegidas) ---
+# --- Rotas para Amizades (Protegidas)
 @router.post("/friends/request/{target_team_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Friends (Protected)"])
 async def send_friend_request(target_team_id: PydanticObjectId, current_team: Annotated[Team, Depends(get_current_team)]):
     """Envia um pedido de amizade para outro time."""
