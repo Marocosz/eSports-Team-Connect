@@ -2,6 +2,9 @@
 Pense neste arquivo como a planta baixa de todos os dados da sua aplicação. Ele define 
 com precisão a estrutura de cada "coisa" que existe no seu sistema: o que é um Time, o 
 que é um Jogador, o que é um Post, que informações cada um deles contém e quais regras eles devem seguir.
+
+O benie:  Beanie é um ODM (Object-Document Mapper) assíncrono para MongoDB, 
+          feito para funcionar perfeitamente com Python moderno e FastAPI.
 """
 import datetime
 from typing import List, Optional
@@ -13,8 +16,6 @@ from pydantic import BaseModel, EmailStr, Field
 # -----------------------------------------------------------------------------
 # Modelos Compartilhados (Pydantic)
 # -----------------------------------------------------------------------------
-
-
 class Socials(BaseModel):
     """Modelo para as redes sociais de um time."""
     discord: Optional[str] = None
@@ -44,11 +45,10 @@ class FriendInfo(BaseModel):
     tag: Optional[str] = None
     main_game: Optional[str] = None
 
+
 # -----------------------------------------------------------------------------
 # Modelos de Player
 # -----------------------------------------------------------------------------
-
-
 class Player(Document):
     """Representa um jogador no banco de dados (coleção 'players')."""
     nickname: str
@@ -79,11 +79,10 @@ class PlayerOut(BaseModel):
 class CommentCreate(BaseModel):
     content: str
 
+
 # -----------------------------------------------------------------------------
 # Modelos de Team
 # -----------------------------------------------------------------------------
-
-
 class Team(Document):
     """Representa um time no banco de dados (coleção 'teams'). Este é o nosso 'usuário'."""
     email: EmailStr = Field(..., unique=True)
@@ -138,11 +137,10 @@ class TeamUpdate(BaseModel):
     main_game: Optional[str] = None
     socials: Optional[Socials] = None
 
+
 # -----------------------------------------------------------------------------
 # Modelos de Post
 # -----------------------------------------------------------------------------
-
-
 class Post(Document):
     """Representa um post no banco de dados (coleção 'posts')."""
     content: str
@@ -173,8 +171,6 @@ class PostOut(BaseModel):
 # -----------------------------------------------------------------------------
 # Modelos de Autenticação
 # -----------------------------------------------------------------------------
-
-
 class Token(BaseModel):
     """Modelo para a resposta do token de login."""
     access_token: str

@@ -23,6 +23,9 @@ router = APIRouter()
 # --- Rotas de Autenticação e Registro ---
 # =============================================================================
 
+# async: definição de função assincrona
+# await: Ponto de pausa para rodar outras funções sem parar de fato
+
 # responde_model=TeamOut para deifinir como será o retorno desse endpoint 
 @router.post("/teams", response_model=TeamOut, status_code=status.HTTP_201_CREATED, tags=["Auth & Registration"])
 async def create_team(team_data: TeamCreate):
@@ -130,25 +133,28 @@ async def create_post(post_data: PostCreate, current_team: Annotated[Team, Depen
 @router.post("/posts/{post_id}/like", response_model=PostOut, tags=["Posts (Protected)"])
 async def toggle_like_post(post_id: PydanticObjectId, current_team: Annotated[Team, Depends(get_current_team)]):
     """Adiciona ou remove um like de um post."""
-    post = await Post.get(post_id)
+    post = await Post.get(post_id)  # Pega o post pelo ID passado pelo endpoint
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado.")
 
-    found = False
+    found = False  # Bandeira
+    # Para cada like do post
     for team_link in post.likes:
-        if team_link.to_ref().id == current_team.id:
+        # o ".to_ref()" serve para pegarmos os dados brutos daquele documento
+        if team_link.to_ref().id == current_team.id:  # Se dentro dos likes o current_team estiver é para remover o like
             post.likes.remove(team_link)
             found = True
             break
     if not found:
-        post.likes.append(current_team)
+        post.likes.append(current_team)  # Se não estiver, é para adicionar o like
     await post.save()
     
-    await post.fetch_link(Post.author)
+    
+    await post.fetch_link(Post.author)  # Carrega os dados do autor do post
     post_dict = post.model_dump()
-    post_dict["likes"] = [like.to_ref().id for like in post.likes]
-    post_dict["likes_count"] = len(post.likes)
-    return PostOut(**post_dict)
+    post_dict["likes"] = [like.to_ref().id for like in post.likes]  # Lista com apenas os times que curtiram o post
+    post_dict["likes_count"] = len(post.likes)  # Atualiza a quantidade de likes do post
+    return PostOut(**post_dict)  # Retorna os dados atualizados no modelo PostOut  ** Serve para desempacator o dict
 
 @router.post("/posts/{post_id}/comments", response_model=Comment, status_code=status.HTTP_201_CREATED, tags=["Posts (Protected)"])
 async def create_comment_on_post(post_id: PydanticObjectId, comment_data: CommentCreate, current_team: Annotated[Team, Depends(get_current_team)]):
