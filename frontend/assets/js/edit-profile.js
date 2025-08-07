@@ -1,4 +1,4 @@
-// assets/js/edit-profile.js - Versão com Dropdown Dinâmico
+// assets/js/edit-profile.js - Versão Final e Completa
 
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('accessToken');
@@ -14,10 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageContainer = document.getElementById('message-container');
     const tabs = document.querySelectorAll('.tab-link');
     const tabContents = document.querySelectorAll('.tab-content');
-
-    // --- Novos seletores ---
     const mainGameSelect = document.getElementById('main_game');
     const playerRoleSelect = document.getElementById('player-role');
+    const logoutButton = document.getElementById('logout-button'); // Adicionado
     
     const API_URL = 'http://127.0.0.1:8000/api';
     let myProfile = null;
@@ -39,10 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- LÓGICA NOVA: Atualiza o dropdown de funções do jogador ---
-    function updatePlayerRolesDropdown(selectedGame) {
-        playerRoleSelect.innerHTML = ''; // Limpa as opções antigas
+    // --- FUNÇÕES ---
 
+    /**
+     * Atualiza o dropdown de funções do jogador com base no jogo selecionado.
+     */
+    function updatePlayerRolesDropdown(selectedGame) {
+        playerRoleSelect.innerHTML = ''; 
         if (!selectedGame || !gameRoles[selectedGame]) {
             playerRoleSelect.innerHTML = '<option value="">-- Selecione um Jogo Principal no perfil --</option>';
             playerRoleSelect.disabled = true;
@@ -51,9 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         playerRoleSelect.disabled = false;
         playerRoleSelect.innerHTML = '<option value="">-- Selecione uma função --</option>';
-        
-        const roles = gameRoles[selectedGame];
-        roles.forEach(role => {
+        gameRoles[selectedGame].forEach(role => {
             const option = document.createElement('option');
             option.value = role;
             option.textContent = role;
@@ -61,9 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Lógica de Dados ---
-    
-    // 1. Busca os dados atuais e preenche tudo
+    /**
+     * Busca os dados atuais do perfil e preenche a página.
+     */
     async function populatePageData() {
         try {
             const response = await fetch(`${API_URL}/teams/me/profile`, {
@@ -83,36 +83,89 @@ document.addEventListener('DOMContentLoaded', () => {
             // Preenche a lista de jogadores
             renderPlayers(data.players);
 
-            // ATUALIZAÇÃO: Popula o dropdown de roles com base no jogo atual do time
+            // Popula o dropdown de roles com base no jogo atual do time
             updatePlayerRolesDropdown(data.main_game);
 
         } catch (error) {
             console.error('Erro ao buscar perfil:', error.message);
+            // Lida com token inválido/expirado
+            localStorage.removeItem('accessToken');
+            window.location.href = 'login.html';
         }
     }
 
-    // 2. Renderiza a lista de jogadores
+    /**
+     * Renderiza a lista de jogadores com o botão de excluir.
+     */
     function renderPlayers(players) {
         if (players.length === 0) {
             playersListDiv.innerHTML = '<p>Nenhum jogador cadastrado.</p>';
             return;
         }
         playersListDiv.innerHTML = players.map(player => `
-            <div class="social-item">
+            <div class="social-item" data-player-id="${player.id}">
                 <span>${player.nickname} (${player.role || 'N/A'})</span>
+                <button class="delete-player-btn" title="Excluir Jogador">&times;</button>
             </div>
         `).join('');
     }
 
-    // 3. Lida com o envio do formulário de edição de perfil
-    editProfileForm.addEventListener('submit', async (event) => { /* ... (sem alterações) ... */ });
+    /**
+     * Envia o pedido para deletar um jogador.
+     */
+    async function deletePlayer(playerId) {
+        if (!confirm('Tem certeza que deseja excluir este jogador? Esta ação não pode ser desfeita.')) {
+            return;
+        }
+        try {
+            const response = await fetch(`${API_URL}/players/${playerId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Falha ao excluir o jogador.');
+            }
+            alert('Jogador excluído com sucesso!');
+            populatePageData(); // Atualiza a lista na tela
+        } catch (error) {
+            alert(`Erro: ${error.message}`);
+        }
+    }
 
-    // 4. Lida com o envio do formulário para adicionar jogador
+    // --- EVENT LISTENERS ---
+    
+    // Listener para o formulário de edição de perfil
+    editProfileForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const updatedData = {
+            team_name: document.getElementById('team_name').value,
+            tag: document.getElementById('tag').value,
+            main_game: document.getElementById('main_game').value,
+            bio: document.getElementById('bio').value,
+        };
+        try {
+            const response = await fetch(`${API_URL}/teams/me/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify(updatedData)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.detail);
+
+            alert('Perfil atualizado com sucesso!');
+            window.location.href = 'profile.html';
+        } catch (error) {
+            messageContainer.innerHTML = `<p class="error-message">${error.message}</p>`;
+        }
+    });
+
+    // Listener para o formulário de adicionar jogador
     addPlayerForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const playerData = {
             nickname: document.getElementById('player-nickname').value,
-            role: document.getElementById('player-role').value, // <-- Agora pega do <select>
+            role: document.getElementById('player-role').value,
         };
         try {
             const response = await fetch(`${API_URL}/teams/${myProfile.id}/players`, {
@@ -126,18 +179,32 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`Jogador "${newPlayer.nickname}" adicionado com sucesso!`);
             addPlayerForm.reset();
             populatePageData();
-
         } catch (error) {
             alert(`Erro ao adicionar jogador: ${error.message}`);
         }
     });
     
-    // --- EVENT LISTENER NOVO ---
-    // Escuta por mudanças no select de Jogo Principal
+    // Listener para o dropdown de Jogo Principal
     mainGameSelect.addEventListener('change', (event) => {
         const selectedGame = event.target.value;
         updatePlayerRolesDropdown(selectedGame);
     });
 
+    // Listener para a lista de jogadores (para o botão de excluir)
+    playersListDiv.addEventListener('click', (event) => {
+        if (event.target.matches('.delete-player-btn')) {
+            const playerId = event.target.closest('.social-item').dataset.playerId;
+            deletePlayer(playerId);
+        }
+    });
+    
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('accessToken');
+            window.location.href = 'login.html';
+        });
+    }
+
+    // --- INICIALIZAÇÃO ---
     populatePageData();
 });

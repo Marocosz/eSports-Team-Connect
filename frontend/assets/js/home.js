@@ -1,5 +1,3 @@
-// assets/js/home.js - Versão Final e Organizada
-
 document.addEventListener('DOMContentLoaded', () => {
     // --- O "SEGURANÇA" DA PÁGINA: Garante que só usuários logados acessem ---
     const token = localStorage.getItem('accessToken');
@@ -8,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- ELEMENTOS DA PÁGINA ---
+    // --- ELEMENTOS DA PÁGINA (Referências ao HTML para manipulação) ---
     const postFeed = document.getElementById('post-feed');
     const createPostForm = document.getElementById('create-post-form');
     const postContentTextarea = document.getElementById('post-content');
@@ -17,16 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const creatorAvatar = document.getElementById('creator-avatar');
     const charCounter = document.getElementById('char-counter');
     const discoverTeamsList = document.getElementById('discover-teams-list');
+    const popularPostsList = document.getElementById('popular-posts-list');
     const API_URL = 'http://127.0.0.1:8000/api';
 
-    let myProfile = null; // Variável para guardar os dados do time logado
+    let myProfile = null; // Variável global para guardar os dados do time logado
 
     // =========================================================================
-    // --- FUNÇÕES DE LÓGICA DA APLICAÇÃO ---
+    // --- FUNÇÕES PRINCIPAIS DE BUSCA E RENDERIZAÇÃO (FETCH & RENDER) ---
     // =========================================================================
 
     /**
-     * Busca todos os posts da API e os renderiza na tela.
+     * Busca todos os posts da API e chama a função para renderizá-los na tela.
      */
     async function fetchAndRenderPosts() {
         try {
@@ -36,12 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPosts(posts);
         } catch (error) {
             console.error('Erro ao buscar posts:', error.message);
-            if(postFeed) postFeed.innerHTML = '<p class="error-message">Não foi possível carregar o feed.</p>';
+            if (postFeed) postFeed.innerHTML = '<p class="error-message">Não foi possível carregar o feed.</p>';
         }
     }
 
     /**
-     * Recebe um array de posts e cria o HTML correspondente.
+     * Recebe um array de posts e cria o HTML correspondente para o feed.
      * @param {Array} posts - A lista de posts vinda da API.
      */
     function renderPosts(posts) {
@@ -53,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let postsHTML = '';
         posts.forEach(post => {
+            // Verifica se o usuário logado (myProfile) já curtiu este post
             const isLikedByCurrentUser = myProfile && post.likes && post.likes.includes(myProfile.id);
             postsHTML += `
                 <div class="post-card" data-post-id="${post.id}">
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_URL}/teams/me/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
             const data = await response.json();
             if (!response.ok) throw new Error(data.detail);
-            myProfile = data;
+            myProfile = data; // Guarda os dados do perfil para uso em outras funções
             if (teamNamePlaceholder) teamNamePlaceholder.textContent = data.team_name;
             if (creatorAvatar && data.team_name) {
                 creatorAvatar.textContent = data.team_name.charAt(0).toUpperCase();
@@ -121,16 +121,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_URL}/teams`);
             if (!response.ok) throw new Error('Falha ao buscar times.');
             let teams = await response.json();
+
+            // Filtra o próprio time da lista de sugestões, se o perfil já foi carregado
             if (myProfile) {
                 teams = teams.filter(team => team.id !== myProfile.id);
             }
-            discoverTeamsList.innerHTML = '';
-            teams.slice(0, 5).forEach(team => {
+
+            discoverTeamsList.innerHTML = ''; // Limpa o "Carregando..."
+            teams.slice(0, 5).forEach(team => { // Mostra apenas os 5 primeiros
                 const li = document.createElement('li');
+
+                // --- NOVO HTML COM ESTRUTURA VERTICAL ---
                 li.innerHTML = `
-                    <a href="profile.html?id=${team.id}" class="discover-team-link">${team.team_name}</a>
+                    <div class="discover-item-info">
+                        <div class="discover-avatar">${team.team_name.charAt(0).toUpperCase()}</div>
+                        <div class="discover-text">
+                            <a href="profile.html?id=${team.id}" class="discover-team-link">${team.team_name}</a>
+                            <small>${team.main_game || 'Jogo não definido'}</small>
+                        </div>
+                    </div>
                     <button class="btn btn-small add-friend-btn" data-team-id="${team.id}">Adicionar</button>
                 `;
+                // --- FIM DO NOVO HTML ---
+
                 discoverTeamsList.appendChild(li);
             });
         } catch (error) {
@@ -138,6 +151,38 @@ document.addEventListener('DOMContentLoaded', () => {
             discoverTeamsList.innerHTML = '<li>Erro ao carregar.</li>';
         }
     }
+
+    /**
+     * Busca os posts mais populares e os renderiza na sidebar.
+     */
+    async function fetchAndRenderPopularPosts() {
+        if (!popularPostsList) return;
+        try {
+            const response = await fetch(`${API_URL}/posts/popular`);
+            const posts = await response.json();
+            if (!response.ok) throw new Error('Falha ao buscar posts populares.');
+
+            if (posts.length === 0) {
+                popularPostsList.innerHTML = '<li>Nenhum post popular ainda.</li>';
+                return;
+            }
+            popularPostsList.innerHTML = posts.map(post => `
+                <li>
+                    <a href="#post-${post.id}">
+                        <p class="popular-post-content">"${post.content.substring(0, 40)}..."</p>
+                        <span class="popular-post-author">por ${post.author.team_name}</span>
+                    </a>
+                </li>
+            `).join('');
+        } catch (error) {
+            console.error(error);
+            popularPostsList.innerHTML = '<li>Erro ao carregar.</li>';
+        }
+    }
+
+    // =========================================================================
+    // --- FUNÇÕES DE AÇÃO DO USUÁRIO (EVENT HANDLERS) ---
+    // =========================================================================
 
     /**
      * Lida com o envio de um pedido de amizade.
@@ -152,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || 'Falha ao enviar pedido.');
             }
+            // Sucesso! Desabilita o botão e muda o texto para dar feedback ao usuário.
             buttonElement.textContent = 'Enviado';
             buttonElement.disabled = true;
         } catch (error) {
@@ -159,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(error.message);
         }
     }
-    
+
     /**
      * Lida com a submissão do formulário de criação de post.
      */
@@ -175,8 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const newPost = await response.json();
             if (!response.ok) throw new Error(newPost.detail);
+
+            // Limpa o formulário e atualiza o feed para mostrar o novo post.
             postContentTextarea.value = '';
-            if(charCounter) charCounter.textContent = '0 / 280';
+            if (charCounter) charCounter.textContent = '0 / 280';
             fetchAndRenderPosts();
         } catch (error) {
             alert(`Erro ao publicar: ${error.message}`);
@@ -184,14 +232,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Lida com cliques no feed (likes e comentários).
+     * Lida com cliques no feed (likes e comentários), usando delegação de eventos.
      */
     async function handleFeedClick(event) {
-        // ... (lógica de like e comentário que já estava correta) ...
+        const target = event.target;
+        const postCard = target.closest('.post-card');
+        if (!postCard) return;
+        const postId = postCard.dataset.postId;
+
+        // --- LÓGICA DE LIKE ---
+        const likeButton = target.closest('.like-button');
+        if (likeButton) {
+            try {
+                const response = await fetch(`${API_URL}/posts/${postId}/like`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const updatedPost = await response.json();
+                if (!response.ok) throw new Error(updatedPost.detail);
+
+                // Atualiza a interface do card específico sem recarregar o feed inteiro.
+                const likesCountSpan = postCard.querySelector('.likes-count');
+                const icon = likeButton.querySelector('i');
+                likesCountSpan.textContent = updatedPost.likes_count;
+
+                const isLiked = updatedPost.likes.includes(myProfile.id);
+                likeButton.classList.toggle('liked', isLiked);
+                icon.classList.toggle('bi-heart-fill', isLiked);
+                icon.classList.toggle('bi-heart', !isLiked);
+
+            } catch (error) {
+                console.error('Erro ao curtir:', error.message);
+                alert('Não foi possível processar o like.');
+            }
+        }
+
+        // --- LÓGICA DE COMENTÁRIO ---
+        if (target.matches('.comment-form button')) {
+            event.preventDefault();
+            const commentInput = target.previousElementSibling;
+            const content = commentInput.value.trim();
+            if (!content) return;
+            try {
+                const response = await fetch(`${API_URL}/posts/${postId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ content: content })
+                });
+                const newComment = await response.json();
+                if (!response.ok) throw new Error(newComment.detail);
+
+                // Limpa o input e recarrega todos os posts para mostrar o novo comentário.
+                commentInput.value = '';
+                fetchAndRenderPosts();
+            } catch (error) {
+                console.error('Erro ao comentar:', error.message);
+                alert('Não foi possível enviar o comentário.');
+            }
+        }
     }
-    
+
     /**
-     * Função centralizada para lidar com erros de autenticação.
+     * Função centralizada para lidar com erros de autenticação (ex: token expirado).
      */
     function handleAuthError() {
         localStorage.removeItem('accessToken');
@@ -200,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // --- EVENT LISTENERS E INICIALIZAÇÃO ---
+    // --- EVENT LISTENERS E INICIALIZAÇÃO DA PÁGINA ---
     // =========================================================================
 
     if (createPostForm) createPostForm.addEventListener('submit', handlePostSubmit);
@@ -209,14 +311,14 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('accessToken');
         window.location.href = 'login.html';
     });
-    
+
     if (postContentTextarea) postContentTextarea.addEventListener('input', () => {
         const count = postContentTextarea.value.length;
-        if(charCounter) charCounter.textContent = `${count} / 280`;
+        if (charCounter) charCounter.textContent = `${count} / 280`;
         if (count > 280) {
-            if(charCounter) charCounter.style.color = 'var(--color-glow-end)';
+            if (charCounter) charCounter.style.color = 'var(--color-glow-end)';
         } else {
-            if(charCounter) charCounter.style.color = 'var(--color-text-secondary)';
+            if (charCounter) charCounter.style.color = 'var(--color-text-secondary)';
         }
     });
 
@@ -227,11 +329,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    /**
+     * Função que orquestra o carregamento inicial da página.
+     */
     async function initializePage() {
+        // Busca o perfil do usuário logado primeiro, pois outras funções dependem dele.
         await fetchMyProfile();
-        await fetchAndRenderPosts();
-        await fetchAndRenderDiscoverTeams();
+        // Depois, busca o resto dos dados em paralelo para agilizar.
+        await Promise.all([
+            fetchAndRenderPosts(),
+            fetchAndRenderDiscoverTeams(),
+            fetchAndRenderPopularPosts()
+        ]);
     }
 
+    // Inicia o carregamento da página.
     initializePage();
 });

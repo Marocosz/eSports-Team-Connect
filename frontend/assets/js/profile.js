@@ -1,13 +1,12 @@
-// assets/js/profile.js - Versão Completa e Corrigida
-
 document.addEventListener('DOMContentLoaded', () => {
+    // --- O "SEGURANÇA" DA PÁGINA ---
     const token = localStorage.getItem('accessToken');
     if (!token) {
         window.location.href = 'login.html';
         return;
     }
 
-    // --- Elementos da Página ---
+    // --- ELEMENTOS DA PÁGINA ---
     const teamNameEl = document.getElementById('profile-team-name');
     const tagEl = document.getElementById('profile-tag');
     const bioEl = document.getElementById('profile-bio');
@@ -16,13 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const friendsCountEl = document.getElementById('friends-count');
     const friendsListEl = document.getElementById('friends-list');
     const postFeedEl = document.getElementById('profile-post-feed');
+    const playersListDiv = document.getElementById('profile-players-list');
     const logoutButton = document.getElementById('logout-button');
-    
+
     const API_URL = 'http://127.0.0.1:8000/api';
-    let myProfile = null; // Para guardar os dados do usuário logado
+    let myProfile = null;
 
     /**
-     * Pega o ID da URL (ex: profile.html?id=123)
+     * Pega o ID do perfil da URL (ex: profile.html?id=123)
+     * @returns {string|null} O ID do perfil ou null se não houver.
      */
     function getProfileIdFromUrl() {
         const params = new URLSearchParams(window.location.search);
@@ -30,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Renderiza o cabeçalho do perfil com os dados do time.
+     * Renderiza o cabeçalho da página de perfil.
+     * @param {object} team - O objeto do time com os dados do perfil.
      */
     function renderProfileHeader(team) {
         teamNameEl.textContent = team.team_name;
@@ -39,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (team.team_name) {
             avatarEl.textContent = team.team_name.charAt(0).toUpperCase();
         }
-        
+
         if (myProfile && myProfile.id === team.id) {
             actionsEl.innerHTML = `<a href="edit-profile.html" class="btn">Editar Perfil</a>`;
         } else {
@@ -49,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Renderiza a lista de amigos na sidebar.
+     * @param {Array} friends - A lista de amigos do time.
      */
     function renderFriends(friends) {
         if (!friendsCountEl || !friendsListEl) return;
@@ -63,10 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
             </li>
         `).join('');
     }
-    
+
     /**
-     * Recebe um array de posts e cria o HTML correspondente.
-     * Esta é a função que estava faltando.
+     * Renderiza a grade de jogadores do time.
+     * @param {Array} players - A lista de jogadores do time.
+     */
+    function renderPlayers(players) {
+        if (!playersListDiv) return;
+        if (!players || players.length === 0) {
+            playersListDiv.innerHTML = '<p>Este time não possui jogadores cadastrados.</p>';
+            return;
+        }
+        playersListDiv.innerHTML = players.map(player => `
+            <div class="player-card">
+                <h4>${player.nickname}</h4>
+                <p>${player.role || 'Função não definida'}</p>
+            </div>
+        `).join('');
+    }
+
+    /**
+     * Renderiza o feed de posts do time.
+     * @param {Array} posts - A lista de posts do time.
      */
     function renderPosts(posts) {
         if (!postFeedEl) return;
@@ -117,15 +138,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Inicializa a página, buscando todos os dados necessários.
+     * Orquestra o carregamento de todos os dados da página.
      */
     async function initializeProfilePage() {
         let profileId = getProfileIdFromUrl();
+
         try {
             const myProfileResponse = await fetch(`${API_URL}/teams/me/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
             myProfile = await myProfileResponse.json();
             if (!myProfileResponse.ok) throw new Error("Falha ao buscar seu perfil");
-            
+
             if (!profileId) {
                 profileId = myProfile.id;
             }
@@ -148,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const friendsData = await friendsRes.json();
 
             renderProfileHeader(profileData);
+            renderPlayers(profileData.players);
             renderPosts(postsData);
             renderFriends(friendsData);
 
@@ -156,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.dashboard-container').innerHTML = '<h2>Erro ao carregar perfil. O time pode não existir.</h2>';
         }
     }
-    
+
     function handleAuthError() {
         localStorage.removeItem('accessToken');
         alert('Sua sessão expirou. Por favor, faça o login novamente.');
@@ -170,5 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Inicia o carregamento da página.
     initializeProfilePage();
 });

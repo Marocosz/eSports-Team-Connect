@@ -12,7 +12,8 @@ from .models import (
     PlayerCreate, PlayerOut,
     PostCreate, PostOut,
     CommentCreate,
-    Token, FriendInfo, TeamUpdate
+    Token, FriendInfo, TeamUpdate, LolRoleEnum,
+    ValorantRoleEnum, CsRoleEnum, GameEnum
 )
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
@@ -97,7 +98,7 @@ async def get_posts_by_team(team_id: PydanticObjectId):
 
     # Encontra todos os posts onde o autor corresponde ao ID do time.
     posts = await Post.find(Post.author.id == team.id, fetch_links=True).sort(-Post.created_at).to_list()
-    
+
     # Prepara a resposta no formato PostOut, que precisa do `likes_count`.
     posts_out = []
     for post in posts:
@@ -130,7 +131,7 @@ async def update_my_team_profile(
     # Itera sobre os dados recebidos e atualiza o documento do time campo por campo.
     for key, value in update_dict.items():
         setattr(current_team, key, value)
-    
+
     # Salva o objeto `current_team` com as alterações de volta no banco de dados.
     await current_team.save()
 
@@ -155,7 +156,7 @@ async def add_player_to_team(
     Adiciona um novo jogador a um time, validando a função (role)
     de acordo com o jogo principal do time.
     """
-    
+
     # Etapa de AUTORIZAÇÃO: Verifica se o time logado é o mesmo da URL.
     if current_team.id != team_id:
         raise HTTPException(
@@ -164,7 +165,7 @@ async def add_player_to_team(
         )
 
     # --- LÓGICA NOVA DE VALIDAÇÃO DA FUNÇÃO (ROLE) ---
-    
+
     # Pega o jogo principal do time e a função do jogador a ser criado.
     team_game = current_team.main_game
     player_role = player_data.role
@@ -173,7 +174,7 @@ async def add_player_to_team(
     if player_role and team_game:
         # Inicia uma "bandeira" para controlar se a função é válida.
         is_role_valid = False
-        
+
         # Se o jogo for LoL, verifica se a função está na lista de funções de LoL.
         if team_game == GameEnum.LOL and player_role in LolRoleEnum._value2member_map_:
             is_role_valid = True
@@ -183,15 +184,13 @@ async def add_player_to_team(
         # Se o jogo for CS, verifica se a função está na lista de funções de CS.
         elif team_game == GameEnum.CS and player_role in CsRoleEnum._value2member_map_:
             is_role_valid = True
-        
+
         # Se, após todas as verificações, a função não for válida para o jogo, retorna um erro.
         if not is_role_valid:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"A função '{player_role}' não é válida para o jogo '{team_game}'.",
             )
-    
-    # --- FIM DA LÓGICA DE VALIDAÇÃO ---
 
     # Se a validação passou, cria a instância do novo jogador e o associa ao time logado.
     player = Player(**player_data.model_dump(), team=current_team)
@@ -204,6 +203,45 @@ async def add_player_to_team(
 
     # Retorna os dados do jogador recém-criado.
     return player
+
+
+# Define a rota DELETE com o ID do jogador na URL.
+@router.delete("/players/{player_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Players (Protected)"])
+# A função recebe o ID do jogador a ser deletado e o time logado (autenticado).
+async def delete_player_from_team(
+    player_id: PydanticObjectId,
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """
+    Exclui um jogador de um time.
+    Apenas o time dono do jogador pode excluí-lo.
+    """
+    # Busca o jogador pelo ID no banco de dados e já carrega o link do seu time.
+    player_to_delete = await Player.get(player_id, fetch_links=True)
+    # Se o jogador não for encontrado, retorna um erro 404.
+    if not player_to_delete:
+        raise HTTPException(status_code=404, detail="Jogador não encontrado.")
+
+    # Etapa de AUTORIZAÇÃO: Verifica se o jogador realmente pertence ao time que está logado.
+    # Se o jogador não tiver time ou o ID do time dele for diferente do time logado, retorna um erro 403.
+    if not player_to_delete.team or player_to_delete.team.id != current_team.id:
+        raise HTTPException(
+            status_code=403, detail="Você não tem permissão para excluir este jogador.")
+
+    # Se a autorização passar, exclui o documento do jogador da coleção 'players'.
+    await player_to_delete.delete()
+
+    # Para manter a consistência, também removemos a referência (Link) do jogador da lista de jogadores do time.
+    # Encontra o link exato na lista do time.
+    link_to_remove = next(
+        (link for link in current_team.players if link.to_ref().id == player_id), None)
+    # Se o link for encontrado, remove-o e salva o documento do time.
+    if link_to_remove:
+        current_team.players.remove(link_to_remove)
+        await current_team.save()
+
+    # Retorna `None` com o status 204, indicando que a operação foi bem-sucedida.
+    return None
 
 # =============================================================================
 # --- Rotas de Posts e Comentários ---
@@ -304,6 +342,83 @@ async def create_comment_on_post(
     # Retorna o comentário recém-criado, que será enviado como resposta JSON.
     return new_comment
 
+
+# Retorna uma lista dos 5 posts mais populares no modelo PostOut
+@router.get("/posts/popular", response_model=List[PostOut], tags=["Posts"])
+async def get_popular_posts():
+    """
+    Retorna os 5 posts mais populares (com mais likes), usando Aggregation Pipeline
+    para máxima performance.
+    """
+    # Define as etapas do Aggregation Pipeline, que serão executadas em ordem.
+    pipeline = [
+        # Etapa 1: Adiciona um campo temporário 'likes_count' a cada post,
+        # calculado pelo tamanho ($size) do seu array 'likes'.
+        {
+            "$addFields": {
+                "likes_count": {"$size": "$likes"}
+            }
+        },
+        # Etapa 2: Ordena todos os posts pelo novo campo 'likes_count',
+        # em ordem descendente (-1 significa do maior para o menor).
+        {
+            "$sort": {
+                "likes_count": -1
+            }
+        },
+        # Etapa 3: Pega apenas os 5 primeiros documentos da lista ordenada (o Top 5).
+        {
+            "$limit": 5
+        },
+        # Etapa 4: "Junta" ('join') com a coleção 'teams' para buscar os dados do autor de cada post.
+        # Isso substitui o `fetch_links=True` de forma mais explícita.
+        {
+            "$lookup": {
+                "from": "teams",
+                "localField": "author.$id",  # O campo no post que faz a ligação
+                "foreignField": "_id",     # O campo no time que faz a ligação
+                "as": "author_details"     # O nome do novo campo que conterá os dados do autor
+            }
+        },
+        # Etapa 5: O $lookup retorna o autor como uma lista. O $unwind desempacota essa lista.
+        {
+            "$unwind": "$author_details"
+        },
+        # Etapa 6: Formata ("projeta") o documento final para corresponder ao nosso modelo `PostOut`.
+        {
+            "$project": {
+                "id": "$_id",  # Renomeia o campo _id para id.
+                "content": "$content",
+                "created_at": "$created_at",
+                # Cria o sub-documento 'author' no formato que o PostAuthor espera.
+                "author": {
+                    "id": "$author_details._id",
+                    "team_name": "$author_details.team_name",
+                    "tag": "$author_details.tag"
+                },
+                # Mantém o campo 'likes_count' que já calculamos.
+                "likes_count": "$likes_count",
+                # Transforma a lista de Links de likes em uma lista de IDs.
+                "likes": {
+                    "$map": {
+                        "input": "$likes",
+                        "as": "like",
+                        "in": "$$like.$id"
+                    }
+                },
+                # Mantém a lista de comentários como está.
+                "comments": "$comments"
+            }
+        }
+    ]
+
+    # Executa a pipeline no banco de dados.
+    # O `projection_model=PostOut` converte o resultado diretamente para uma lista de objetos PostOut.
+    posts = await Post.aggregate(pipeline, projection_model=PostOut).to_list()
+
+    # Retorna a lista final com os 5 posts mais populares.
+    return posts
+
 # =============================================================================
 # --- Rotas para Amizades ---
 # =============================================================================
@@ -337,12 +452,12 @@ async def send_friend_request(
     current_team.friend_requests_sent.append(target_team)
     # Adiciona o time logado à lista de pedidos recebidos do time alvo.
     target_team.friend_requests_received.append(current_team)
-    
+
     # Salva as alterações no documento do time logado.
     await current_team.save()
     # Salva as alterações no documento do time alvo.
     await target_team.save()
-    
+
     # Retorna `None`, que, junto com o status_code=204, envia uma resposta vazia de sucesso.
     return None
 
@@ -390,12 +505,12 @@ async def accept_friend_request(
     # Etapa final: Adiciona cada time à lista de amigos um do outro.
     current_team.friends.append(requester_team)
     requester_team.friends.append(current_team)
-    
+
     # Salva as alterações no seu documento.
     await current_team.save()
     # Salva as alterações no documento do seu novo amigo.
     await requester_team.save()
-    
+
     # Retorna `None` para indicar sucesso sem conteúdo.
     return None
 
@@ -426,7 +541,7 @@ async def get_team_friends(team_id: PydanticObjectId):
     team = await Team.get(team_id)
     if not team:
         raise HTTPException(status_code=404, detail="Time não encontrado.")
-    
+
     # Carrega os dados completos dos amigos do time encontrado.
     await team.fetch_link(Team.friends)
     # Retorna a lista de amigos.
