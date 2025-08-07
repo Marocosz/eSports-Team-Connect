@@ -1,3 +1,5 @@
+# app/models.py - Versão Final com GameEnum
+
 """
 Pense neste arquivo como a planta baixa de todos os dados da sua aplicação. Ele define 
 com precisão a estrutura de cada "coisa" que existe no seu sistema: o que é um Time, o 
@@ -10,25 +12,51 @@ import datetime
 from typing import List, Optional
 from beanie import Document, Link, PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field
+from enum import Enum
 
 # O Field serve para: Como se fosse uma "Etiqueta", demonstrando para oque vai ser aquela variável ou como vai ser
 
 # -----------------------------------------------------------------------------
-# Modelos Compartilhados (Pydantic)
+# Modelos Compartilhados (Pydantic & Enums)
 # -----------------------------------------------------------------------------
+
+class GameEnum(str, Enum):
+    """Define a lista de jogos permitidos no sistema."""
+    LOL = "League of Legends"
+    VALORANT = "Valorant"
+    CS = "Counter-Strike"
+    
+class LolRoleEnum(str, Enum):
+    TOP = "Top Laner"
+    JUNGLE = "Jungler"
+    MID = "Mid Laner"
+    ADC = "AD Carry"
+    SUPPORT = "Support"
+
+class ValorantRoleEnum(str, Enum):
+    DUELIST = "Duelista"
+    INITIATOR = "Iniciador"
+    CONTROLLER = "Controlador"
+    SENTINEL = "Sentinela"
+
+class CsRoleEnum(str, Enum):
+    ENTRY_FRAGGER = "Entry Fragger"
+    SUPPORT = "Suporte"
+    LURKER = "Lurker"
+    AWPER = "AWPer"
+    IGL = "IGL (In-Game Leader)"
+
 class Socials(BaseModel):
     """Modelo para as redes sociais de um time."""
     discord: Optional[str] = None
     twitter: Optional[str] = None
     twitch: Optional[str] = None
 
-
 class PostAuthor(BaseModel):
     """Representação simplificada de um autor para ser embutida em posts e comentários."""
     id: PydanticObjectId
     team_name: str
     tag: Optional[str] = None
-
 
 class Comment(BaseModel):
     """Modelo para comentários, que serão embutidos nos documentos de Post."""
@@ -37,14 +65,12 @@ class Comment(BaseModel):
     created_at: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.UTC))
 
-
 class FriendInfo(BaseModel):
     """Representação simplificada de um time para listas de amigos."""
     id: PydanticObjectId
     team_name: str
     tag: Optional[str] = None
-    main_game: Optional[str] = None
-
+    main_game: Optional[GameEnum] = None
 
 # -----------------------------------------------------------------------------
 # Modelos de Player
@@ -60,13 +86,11 @@ class Player(Document):
     class Settings:
         name = "players"
 
-
 class PlayerCreate(BaseModel):
     """Modelo para criar um novo jogador via API."""
     nickname: str
     full_name: Optional[str] = None
     role: Optional[str] = None
-
 
 class PlayerOut(BaseModel):
     """Modelo para exibir um jogador na API, sem informações sensíveis."""
@@ -75,10 +99,8 @@ class PlayerOut(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
 
-
 class CommentCreate(BaseModel):
     content: str
-
 
 # -----------------------------------------------------------------------------
 # Modelos de Team
@@ -91,7 +113,7 @@ class Team(Document):
     tag: Optional[str] = None
     logo_url: Optional[str] = None
     bio: Optional[str] = None
-    main_game: Optional[str] = None
+    main_game: Optional[GameEnum] = None
     socials: Optional[Socials] = None
     friends: List[Link["Team"]] = []
     friend_requests_sent: List[Link["Team"]] = []
@@ -104,15 +126,13 @@ class Team(Document):
     class Settings:
         name = "teams"
 
-
 class TeamCreate(BaseModel):
     """Modelo para registrar um novo time via API."""
     email: EmailStr
     password: str
     team_name: str
     tag: Optional[str] = None
-    main_game: Optional[str] = None
-
+    main_game: Optional[GameEnum] = None 
 
 class TeamOut(BaseModel):
     """Modelo para exibir um time na API, incluindo a lista de jogadores já processada."""
@@ -120,13 +140,12 @@ class TeamOut(BaseModel):
     email: EmailStr
     team_name: str
     tag: Optional[str] = None
-    main_game: Optional[str] = None
+    main_game: Optional[GameEnum] = None 
     logo_url: Optional[str] = None
     bio: Optional[str] = None
     socials: Optional[Socials] = None
     players: List[PlayerOut] = []
     created_at: datetime.datetime
-
 
 class TeamUpdate(BaseModel):
     """Modelo para receber os dados de atualização de um time via API."""
@@ -134,9 +153,8 @@ class TeamUpdate(BaseModel):
     tag: Optional[str] = None
     logo_url: Optional[str] = None
     bio: Optional[str] = None
-    main_game: Optional[str] = None
+    main_game: Optional[GameEnum] = None 
     socials: Optional[Socials] = None
-
 
 # -----------------------------------------------------------------------------
 # Modelos de Post
@@ -153,11 +171,9 @@ class Post(Document):
     class Settings:
         name = "posts"
 
-
 class PostCreate(BaseModel):
     """Modelo para criar um novo post via API."""
     content: str = Field(..., min_length=1, max_length=280)
-
 
 class PostOut(BaseModel):
     """Modelo para exibir um post na API, com autor, likes e comentários."""
@@ -165,6 +181,7 @@ class PostOut(BaseModel):
     content: str
     created_at: datetime.datetime
     author: PostAuthor
+    likes: List[PydanticObjectId]
     likes_count: int
     comments: List[Comment]
 

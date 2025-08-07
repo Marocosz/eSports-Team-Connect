@@ -1,7 +1,7 @@
-/* assets/css/style.css - Versão Final e Organizada */
+/* assets/css/style.css - Versão Final Refatorada */
 
 /* ==========================================================================
-   1. Variáveis de Design e Estilos Globais
+   1. Configurações Globais (Variáveis, Body, etc.)
    ========================================================================== */
 :root {
     --color-background: #111119;
@@ -24,19 +24,8 @@ body {
     color: var(--color-text-primary);
     margin: 0;
     padding: 2rem;
-    /* Espaçamento no topo para a navbar fixa, apenas em páginas de dashboard */
     padding-top: 80px;
-}
-
-/* Classe especial para centralizar páginas como a de login */
-body.centered-page {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding-top: 2rem;
-    /* Reseta o padding para centralizar corretamente */
+    /* Espaço para a navbar fixa */
 }
 
 a,
@@ -52,14 +41,45 @@ a:hover {
 }
 
 /* ==========================================================================
-   2. Layout Principal (Navbar, Containers, etc.)
+   2. Layout Principal e Contêineres
+   ========================================================================== */
+
+/* Layout para páginas de dashboard com sidebar */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: flex-start;
+}
+
+/* Container genérico para páginas centralizadas */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+/* Classe especial para centralizar verticalmente e horizontalmente (página de login) */
+body.centered-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding-top: 2rem;
+}
+
+/* ==========================================================================
+   3. Barra de Navegação (Navbar)
    ========================================================================== */
 .navbar {
     width: 100%;
     background-color: rgba(26, 26, 36, 0.8);
-    /* Fundo semi-transparente */
     backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--color-border);
     padding: 0 2rem;
     box-sizing: border-box;
@@ -81,6 +101,7 @@ a:hover {
     color: white;
     font-weight: 700;
     font-size: 1.5rem;
+    text-decoration: none;
 }
 
 .nav-menu {
@@ -88,44 +109,41 @@ a:hover {
     display: flex;
     gap: 2rem;
     margin: 0 auto;
-    /* Centraliza o menu */
     padding: 0;
+}
+
+.nav-link {
+    color: var(--color-text-secondary);
+    font-weight: 500;
 }
 
 .nav-link:hover {
     color: white;
 }
 
-.dashboard-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    gap: 2rem;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    align-items: flex-start;
+.notification-bell {
+    position: relative;
+    font-size: 1.2rem;
 }
 
-.container {
-    /* Usado na página de login */
-    width: 100%;
-    max-width: 1200px;
-    text-align: center;
-}
-
-header h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    background: linear-gradient(90deg, var(--color-glow-start), var(--color-glow-end));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    -text-fill-color: transparent;
-    margin-bottom: 3rem;
+.notification-count {
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    background-color: var(--color-glow-end);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* ==========================================================================
-   3. Componentes (Formulários, Botões, Cards)
+   4. Componentes Comuns (Formulários, Botões, Cards)
    ========================================================================== */
 
 /* --- Formulários --- */
@@ -140,7 +158,9 @@ form {
     gap: 1.5rem;
 }
 
-input {
+input,
+textarea,
+select {
     background: transparent;
     border: none;
     border-bottom: 2px solid var(--color-border);
@@ -150,11 +170,31 @@ input {
     font-family: var(--font-family);
     transition: border-color 0.3s ease;
     border-radius: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-input:focus {
+input:focus,
+textarea:focus,
+select:focus {
     outline: none;
     border-bottom-color: var(--color-glow-end);
+}
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23a0a0b0' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1em;
+    padding-right: 2rem;
+}
+
+select option {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
 }
 
 /* --- Botões --- */
@@ -169,7 +209,6 @@ input:focus {
     padding: 0.75rem;
     font-size: 1rem;
     font-weight: 700;
-    font-family: var(--font-family);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -182,7 +221,6 @@ input:focus {
 }
 
 .btn.btn-small {
-    /* Classe para botões menores, como o de comentar */
     padding: 0.5rem 1rem;
     border-radius: 50px;
     font-size: 0.9rem;
@@ -192,11 +230,27 @@ input:focus {
     padding: 0.5rem 1rem;
 }
 
-/* --- Feed e Posts --- */
+/* ==========================================================================
+   5. Componentes Específicos de Páginas
+   ========================================================================== */
+
+/* --- Página Principal (Feed) --- */
+.sidebar-widget {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.sidebar-widget h3 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.75rem;
+}
+
 .main-feed {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
 }
 
 .post-card {
@@ -204,8 +258,7 @@ input:focus {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.5rem;
-    text-align: left;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .post-header {
@@ -236,54 +289,118 @@ input:focus {
     padding-bottom: 1rem;
 }
 
+.post-creator {
+    display: flex;
+    gap: 1rem;
+    background-color: var(--color-surface);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2.5rem;
+    border: 2px solid transparent;
+    background-image: linear-gradient(var(--color-surface), var(--color-surface)), linear-gradient(135deg, var(--color-glow-start), var(--color-glow-end));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 0 20px rgba(138, 43, 226, 0.2);
+}
 
-/* --- Ações e Comentários do Post (Layout Novo e Refinado) --- */
+.creator-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-image: linear-gradient(45deg, var(--color-glow-start), var(--color-glow-end));
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.creator-form {
+    width: 100%;
+}
+
+.creator-form textarea {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-background);
+    min-height: 100px;
+    border-radius: 8px;
+    padding: 1rem;
+    resize: vertical;
+}
+
+.creator-form textarea:focus {
+    border: 1px solid var(--color-glow-start);
+    box-shadow: none;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+.char-counter {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.feed-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.feed-divider::before,
+.feed-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.divider-text {
+    padding: 0 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+/* Ações e Comentários do Post */
 .post-comments {
     border-top: 1px solid var(--color-border);
     margin-top: 1rem;
     padding-top: 1rem;
 }
 
-/* O container principal que alinha tudo em uma única linha */
 .comment-actions-wrapper {
     display: flex;
     justify-content: space-between;
-    /* Empurra o form para a esquerda e as ações para a direita */
     align-items: center;
     gap: 1rem;
     margin-bottom: 1rem;
 }
 
-/* O formulário de comentário (input + botão) */
 .comment-form {
     display: flex;
+    flex-direction: row;
     align-items: center;
     flex-grow: 1;
-    /* Faz o formulário tentar ocupar o máximo de espaço à esquerda */
     gap: 0.5rem;
-    flex-direction: row;
 }
 
 .comment-form input {
     flex-grow: 1;
-    /* Faz o input esticar para preencher o espaço */
     border-radius: 50px;
     padding: 0.5rem 1rem;
     border: 1px solid var(--color-border);
 }
 
-/* Classe para o botão "Comentar" ficar menor */
-.btn.btn-small {
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    font-size: 0.9rem;
-}
-
-/* O container dos ícones de like e comentário à direita */
 .post-actions {
     display: flex;
     gap: 1.5rem;
-    /* Aumenta o espaço entre os ícones */
     align-items: center;
 }
 
@@ -314,7 +431,6 @@ input:focus {
     color: var(--color-glow-end);
 }
 
-/* Estilos para a lista de comentários que já tínhamos */
 .comment-list {
     display: flex;
     flex-direction: column;
@@ -335,125 +451,6 @@ input:focus {
 .comment strong {
     color: var(--color-glow-start);
 }
-
-/* --- Mensagens de Status --- */
-#message-container {
-    margin-top: 1rem;
-    font-weight: 600;
-    min-height: 24px;
-}
-
-.success-message {
-    color: var(--color-glow-start);
-}
-
-.error-message {
-    color: var(--color-glow-end);
-}
-
-
-/* Adicione estas regras no final do seu assets/css/style.css */
-
-/* --- Estilos para o Criador de Post --- */
-.post-creator {
-    display: flex;
-    gap: 1rem;
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2.5rem;
-    /* Aumenta o espaço antes do feed */
-}
-
-.creator-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-image: linear-gradient(45deg, var(--color-glow-start), var(--color-glow-end));
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    /* Impede que o avatar encolha */
-}
-
-.creator-form {
-    width: 100%;
-}
-
-/* Remove a borda inferior do formulário dentro do criador de post */
-.creator-form textarea {
-    border: none;
-    background-color: var(--color-background);
-    min-height: 100px;
-    border-radius: 8px;
-    padding: 1rem;
-    color: var(--color-text-primary);
-    font-family: var(--font-family);
-    font-size: 1rem;
-}
-
-.creator-form textarea:focus {
-    border: none;
-    box-shadow: 0 0 0 2px var(--color-glow-start);
-    /* Adiciona um brilho ao focar */
-}
-
-.form-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 0.75rem;
-}
-
-.char-counter {
-    font-size: 0.9rem;
-    color: var(--color-text-secondary);
-}
-
-/* Adicione estas regras no final do seu assets/css/style.css */
-
-/* --- Estilo Único para o Criador de Post --- */
-.post-creator {
-    /* Adiciona uma borda com gradiente para destacar */
-    border: 2px solid transparent;
-    background-image: linear-gradient(var(--color-surface), var(--color-surface)), 
-                      linear-gradient(135deg, var(--color-glow-start), var(--color-glow-end));
-    background-origin: border-box;
-    background-clip: padding-box, border-box;
-    box-shadow: 0 0 20px rgba(138, 43, 226, 0.2); /* Adiciona um brilho sutil */
-}
-
-/* --- Estilo para a Divisória Moderna --- */
-.feed-divider {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 2rem 0; /* Espaçamento vertical */
-}
-
-/* Linha à esquerda do texto */
-.feed-divider::before,
-/* Linha à direita do texto */
-.feed-divider::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid var(--color-border);
-}
-
-/* Estilo do texto no meio da divisória */
-.divider-text {
-    padding: 0 1rem;
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--color-text-secondary);
-}
-
-/* Adicione no final de assets/css/style.css */
 
 .discover-list {
     list-style: none;
@@ -479,32 +476,124 @@ input:focus {
     border-radius: 4px;
 }
 
-/* Adicione no final de assets/css/style.css */
-
-.notification-bell {
-    position: relative;
-    font-size: 1.2rem;
+/* --- Página de Perfil --- */
+.profile-header {
+    max-width: 1200px;
+    margin: 0 auto 2rem auto;
+    background-color: var(--color-surface);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
 }
 
-.notification-count {
-    position: absolute;
-    top: -5px;
-    right: -10px;
-    background-color: var(--color-glow-end);
-    color: white;
+.profile-banner {
+    height: 200px;
+    background: linear-gradient(90deg, var(--color-glow-start), var(--color-glow-end));
+}
+
+.profile-info {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    padding: 0 2rem;
+    position: relative;
+}
+
+.profile-avatar {
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 0.75rem;
-    font-weight: bold;
+    background-image: linear-gradient(45deg, var(--color-glow-start), var(--color-glow-end));
+    margin-top: -75px;
+    border: 5px solid var(--color-surface);
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: 4rem;
+    font-weight: 700;
+    color: white;
 }
 
-/* Adicione no final de assets/css/style.css */
+.profile-details {
+    padding-bottom: 1rem;
+    text-align: left;
+}
 
-/* --- Estilos do Modal de Notificações --- */
+.profile-details h1 {
+    margin: 0;
+    font-size: 2rem;
+    color: white;
+}
+
+.profile-details h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    color: var(--color-text-secondary);
+}
+
+.profile-details p {
+    margin: 0;
+    color: var(--color-text-primary);
+}
+
+.profile-actions {
+    margin-left: auto;
+    padding-bottom: 1rem;
+}
+
+/* --- Página de Edição de Perfil --- */
+.settings-container {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 2rem;
+}
+
+.tab-link {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-link.active {
+    color: var(--color-glow-start);
+    border-bottom-color: var(--color-glow-start);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+#edit-profile-form label {
+    text-align: left;
+    margin-bottom: -1rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.players-manager h3,
+.players-manager h4 {
+    text-align: center;
+}
+
+/* --- Modal de Notificações --- */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -549,12 +638,12 @@ input:focus {
     cursor: pointer;
 }
 
-/* Reutilizando estilos que já temos para a lista */
 .social-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
+
 .social-item {
     display: flex;
     justify-content: space-between;
@@ -563,74 +652,24 @@ input:focus {
     border-radius: 6px;
     background-color: var(--color-background);
 }
+
 .social-actions {
     display: flex;
     gap: 0.5rem;
 }
 
-/* Adicione no final de assets/css/style.css */
-
-/* --- Estilos da Página de Perfil --- */
-.profile-header {
-    max-width: 1200px;
-    margin: 0 auto 2rem auto;
-    background-color: var(--color-surface);
-    border-radius: 8px;
-    border: 1px solid var(--color-border);
-    overflow: hidden; /* Garante que o banner não vaze */
+/* --- Mensagens de Status --- */
+#message-container {
+    margin-top: 1rem;
+    font-weight: 600;
+    min-height: 24px;
 }
 
-.profile-banner {
-    height: 200px;
-    background: linear-gradient(90deg, var(--color-glow-start), var(--color-glow-end));
+.success-message {
+    color: var(--color-glow-start);
 }
 
-.profile-info {
-    display: flex;
-    align-items: flex-end;
-    gap: 1.5rem;
-    padding: 0 2rem;
-    position: relative;
+.error-message {
+    color: var(--color-glow-end);
 }
 
-.profile-avatar {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background-image: linear-gradient(45deg, var(--color-glow-start), var(--color-glow-end));
-    margin-top: -75px; /* Puxa o avatar para cima, sobrepondo o banner */
-    border: 5px solid var(--color-surface);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 4rem;
-    font-weight: 700;
-    color: white;
-}
-
-.profile-details {
-    padding-bottom: 1rem;
-    text-align: left;
-}
-
-.profile-details h1 {
-    margin: 0;
-    font-size: 2rem;
-    color: white;
-}
-
-.profile-details h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.2rem;
-    color: var(--color-text-secondary);
-}
-
-.profile-details p {
-    margin: 0;
-    color: var(--color-text-primary);
-}
-
-.profile-actions {
-    margin-left: auto; /* Empurra os botões para a direita */
-    padding-bottom: 1rem;
-}

@@ -145,33 +145,64 @@ async def update_my_team_profile(
 
 # Define a rota (com ID dinâmico), o que ela retorna (PlayerOut) e a tag para a documentação
 @router.post("/teams/{team_id}/players", response_model=PlayerOut, tags=["Players (Protected)"])
-# A função recebe o ID do time da URL, os dados do jogador do corpo da requisição, e o time logado (autenticado)
+# A função recebe o ID do time da URL, os dados do jogador e o time logado (autenticado)
 async def add_player_to_team(
     team_id: PydanticObjectId,
     player_data: PlayerCreate,
     current_team: Annotated[Team, Depends(get_current_team)]
 ):
-    """Adiciona um novo jogador a um time. Apenas o time autenticado pode adicionar jogadores a si mesmo."""
-
+    """
+    Adiciona um novo jogador a um time, validando a função (role)
+    de acordo com o jogo principal do time.
+    """
+    
     # Etapa de AUTORIZAÇÃO: Verifica se o time logado é o mesmo da URL.
-    # Impede que um time adicione jogadores a outro time.
     if current_team.id != team_id:
         raise HTTPException(
-            status_code=403, detail="Você não tem permissão para adicionar jogadores a este time.")
+            status_code=status.HTTP_403,
+            detail="Você não tem permissão para adicionar jogadores a este time."
+        )
 
-    # Cria a instância do novo jogador, desempacotando os dados recebidos...
-    # ...e já associando o jogador ao time logado para criar o relacionamento.
+    # --- LÓGICA NOVA DE VALIDAÇÃO DA FUNÇÃO (ROLE) ---
+    
+    # Pega o jogo principal do time e a função do jogador a ser criado.
+    team_game = current_team.main_game
+    player_role = player_data.role
+
+    # Só executa a validação se uma função e um jogo principal foram definidos.
+    if player_role and team_game:
+        # Inicia uma "bandeira" para controlar se a função é válida.
+        is_role_valid = False
+        
+        # Se o jogo for LoL, verifica se a função está na lista de funções de LoL.
+        if team_game == GameEnum.LOL and player_role in LolRoleEnum._value2member_map_:
+            is_role_valid = True
+        # Se o jogo for Valorant, verifica se a função está na lista de funções de Valorant.
+        elif team_game == GameEnum.VALORANT and player_role in ValorantRoleEnum._value2member_map_:
+            is_role_valid = True
+        # Se o jogo for CS, verifica se a função está na lista de funções de CS.
+        elif team_game == GameEnum.CS and player_role in CsRoleEnum._value2member_map_:
+            is_role_valid = True
+        
+        # Se, após todas as verificações, a função não for válida para o jogo, retorna um erro.
+        if not is_role_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"A função '{player_role}' não é válida para o jogo '{team_game}'.",
+            )
+    
+    # --- FIM DA LÓGICA DE VALIDAÇÃO ---
+
+    # Se a validação passou, cria a instância do novo jogador e o associa ao time logado.
     player = Player(**player_data.model_dump(), team=current_team)
-
-    # Insere o novo jogador na coleção 'players' do banco de dados.
+    # Insere o novo jogador na coleção 'players'.
     await player.insert()
 
-    # Adiciona a referência (Link) do novo jogador à lista de jogadores do time.
+    # Adiciona o jogador à lista de jogadores do time e salva a alteração.
     current_team.players.append(player)
-    # Salva o documento do time para persistir a nova lista de jogadores.
     await current_team.save()
 
-    # Retorna os dados do jogador recém-criado (filtrado pelo response_model=PlayerOut).
+    # Retorna os dados do jogador recém-criado.
     return player
 
 # =============================================================================
