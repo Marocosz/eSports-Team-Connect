@@ -1,4 +1,4 @@
-/* assets/css/style.css - Versão Final Completa e Consolidada */
+/* assets/css/style.css - Versão Final Refatorada */
 
 /* ==========================================================================
    1. Configurações Globais (Variáveis, Body, etc.)
@@ -43,7 +43,6 @@ a:hover {
 /* ==========================================================================
    2. Layout Principal e Contêineres
    ========================================================================== */
-
 .dashboard-container {
     display: grid;
     grid-template-columns: 250px 1fr;
@@ -61,7 +60,6 @@ a:hover {
     text-align: center;
 }
 
-/* Classe especial para centralizar verticalmente e horizontalmente (página de login) */
 body.centered-page {
     display: flex;
     flex-direction: column;
@@ -69,7 +67,6 @@ body.centered-page {
     justify-content: center;
     min-height: 100vh;
     padding-top: 2rem;
-    /* Reseta o padding para centralizar corretamente */
 }
 
 header h1 {
@@ -80,11 +77,12 @@ header h1 {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     -text-fill-color: transparent;
+    /* Pode ser sublinhado pelo editor, mas está correto */
     margin-bottom: 3rem;
 }
 
 /* ==========================================================================
-   3. Barra de Navegação (Navbar)
+   3. Barra de Navegação (Navbar) - VERSÃO CORRIGIDA
    ========================================================================== */
 .navbar {
     width: 100%;
@@ -108,17 +106,61 @@ header h1 {
 }
 
 .nav-logo {
-    color: white;
     font-weight: 700;
     font-size: 1.5rem;
     text-decoration: none;
+    color: white;
+    margin-right: auto;
+    /* <<< MÁGICA 1: Empurra todo o resto para a direita */
 }
+
+.search-form {
+    position: relative;
+    width: 350px;
+    max-width: 100%;
+    margin-right: 2rem;
+}
+
+.search-form input {
+    width: 100%;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    /* espaço extra à direita para o botão */
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 50px;
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.search-form button {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-form button:hover {
+    color: var(--color-glow-end);
+}
+
 
 .nav-menu {
     list-style: none;
     display: flex;
+    align-items: center;
     gap: 2rem;
-    margin: 0 auto;
+    margin: 0;
     padding: 0;
 }
 
@@ -129,6 +171,12 @@ header h1 {
 
 .nav-link:hover {
     color: white;
+}
+
+.nav-button {
+    padding: 0.5rem 1rem;
+    margin-left: 1rem;
+    /* Espaço entre o menu e o botão */
 }
 
 .notification-bell {
@@ -153,10 +201,8 @@ header h1 {
 }
 
 /* ==========================================================================
-   4. Componentes Comuns (Formulários, Botões, Cards)
+   4. Componentes Comuns (Formulários, Botões, etc.)
    ========================================================================== */
-
-/* --- Formulários --- */
 .form-container {
     max-width: 400px;
     margin: 0 auto;
@@ -166,7 +212,6 @@ body.centered-page .form-container {
     max-width: 350px;
 }
 
-/* Deixa o form de login mais compacto */
 form {
     display: flex;
     flex-direction: column;
@@ -196,7 +241,6 @@ select:focus {
     border-bottom-color: var(--color-glow-end);
 }
 
-/* Correção para o preenchimento automático do navegador */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -223,7 +267,6 @@ select option {
     color: var(--color-text-primary);
 }
 
-/* --- Botões --- */
 .btn {
     background: transparent;
     border: 2px solid transparent;
@@ -322,6 +365,7 @@ a.post-author-link:visited {
     color: white;
 }
 
+/* Componente de Criar Post */
 .post-creator {
     display: flex;
     gap: 1rem;
@@ -401,6 +445,7 @@ a.post-author-link:visited {
     color: var(--color-text-secondary);
 }
 
+/* Ações e Comentários do Post */
 .post-comments {
     border-top: 1px solid var(--color-border);
     margin-top: 1rem;
@@ -484,6 +529,7 @@ a.post-author-link:visited {
     color: var(--color-glow-start);
 }
 
+/* Sidebar Widgets */
 .discover-list {
     list-style: none;
     padding: 0;
@@ -585,6 +631,23 @@ a.post-author-link:visited {
 }
 
 /* --- Página de Perfil --- */
+.profile-section {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.profile-section h2 {
+    margin-top: 0;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
 .profile-header {
     max-width: 1200px;
     margin: 0 auto 2rem auto;
@@ -602,18 +665,14 @@ a.post-author-link:visited {
 .profile-info {
     display: flex;
     align-items: flex-start;
-    /* Changed to flex-start to align items from the top */
     gap: 1.5rem;
     padding: 2rem;
-    /* Increased padding for better spacing */
     position: relative;
 }
 
 .profile-avatar {
     width: 120px;
-    /* Adjusted width */
     height: 120px;
-    /* Adjusted height to match width for a perfect circle */
     border-radius: 50%;
     background-image: linear-gradient(45deg, var(--color-glow-start), var(--color-glow-end));
     border: 5px solid var(--color-surface);
@@ -621,24 +680,17 @@ a.post-author-link:visited {
     justify-content: center;
     align-items: center;
     font-size: 3rem;
-    /* Adjusted font size */
     font-weight: 700;
     color: white;
-    /* Positioning adjustments */
     position: absolute;
     left: 2rem;
-    /* Consistent with profile-info padding */
-    top: 2rem;
-    /* Aligning with the top of the profile-info */
+    top: 125px;
 }
 
 .profile-details {
     padding-left: 150px;
-    /* Indent text to make space for the avatar */
-    padding-bottom: 1rem;
     text-align: left;
     flex-grow: 1;
-    /* Allow details to take up remaining space */
 }
 
 .profile-details h1 {
@@ -661,17 +713,46 @@ a.post-author-link:visited {
 .profile-actions {
     display: flex;
     gap: 1rem;
-    /* Space between the buttons */
     margin-left: auto;
-    /* Push buttons to the right */
-    padding-top: 2rem;
-    /* Align buttons with the top of the text content */
+    padding-top: 0;
 }
 
 .profile-actions .btn {
     padding: 0.6rem 1.2rem;
-    /* Adjust button padding */
     font-size: 0.9rem;
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.player-card {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 1rem;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.player-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-glow-start);
+}
+
+.player-card h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--color-text-primary);
+    font-size: 1.1rem;
+}
+
+.player-card p {
+    margin: 0;
+    color: var(--color-glow-start);
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 /* --- Página de Edição de Perfil --- */
@@ -726,7 +807,31 @@ a.post-author-link:visited {
     text-align: center;
 }
 
-/* --- Modal de Notificações --- */
+.social-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 6px;
+    background-color: var(--color-background);
+}
+
+.delete-player-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0 0.5rem;
+    transition: color 0.2s;
+}
+
+.delete-player-btn:hover {
+    color: var(--color-glow-end);
+}
+
+/* --- Modal --- */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -734,7 +839,7 @@ a.post-author-link:visited {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
     z-index: 2000;
@@ -777,18 +882,20 @@ a.post-author-link:visited {
     gap: 1rem;
 }
 
-.social-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem;
-    border-radius: 6px;
-    background-color: var(--color-background);
-}
-
 .social-actions {
     display: flex;
     gap: 0.5rem;
+}
+
+#propose-scrim-form {
+    gap: 1rem;
+}
+
+#propose-scrim-form label {
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: -0.75rem;
 }
 
 /* --- Mensagens de Status --- */
@@ -806,80 +913,7 @@ a.post-author-link:visited {
     color: var(--color-glow-end);
 }
 
-/* --- Estilos para a Seção de Elenco na Página de Perfil --- */
-
-.profile-section {
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.profile-section h2 {
-    margin-top: 0;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
-}
-
-/* Grade para os cards dos jogadores */
-.players-grid {
-    display: grid;
-    /* Cria colunas responsivas: no mínimo 180px de largura */
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 1rem;
-}
-
-/* Card individual de cada jogador */
-.player-card {
-    background-color: var(--color-background);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    padding: 1rem;
-    text-align: center;
-    transition: transform 0.2s, border-color 0.2s;
-}
-
-.player-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--color-glow-start);
-}
-
-.player-card h4 {
-    /* Nickname */
-    margin: 0 0 0.25rem 0;
-    color: var(--color-text-primary);
-    font-size: 1.1rem;
-}
-
-.player-card p {
-    /* Role */
-    margin: 0;
-    color: var(--color-glow-start);
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-/* Botão para deletar jogador */
-.delete-player-btn {
-    background: none;
-    border: none;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    font-size: 1.5rem; /* Aumenta o tamanho do 'x' */
-    line-height: 1; /* Alinha o 'x' melhor */
-    padding: 0 0.5rem;
-    transition: color 0.2s;
-}
-
-.delete-player-btn:hover {
-    color: var(--color-glow-end); /* Fica magenta ao passar o mouse */
-}
-
-/* --- Estilos da Página de Scrims --- */
+/* --- Scrims --- */
 .scrim-list {
     display: flex;
     flex-direction: column;
@@ -890,36 +924,68 @@ a.post-author-link:visited {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 1.5rem;
+    padding: 1.25rem 1.5rem;
     background-color: var(--color-background);
     border-radius: 6px;
     border-left: 4px solid var(--color-border);
+    transition: border-left-color 0.3s;
 }
 
-.scrim-card.pending {
-    border-left-color: var(--color-glow-start); /* Roxo para pendente */
+.scrim-card:hover {
+    border-left-color: var(--color-glow-start);
 }
 
-.scrim-card.confirmed {
-    border-left-color: #238636; /* Verde para confirmado */
+.scrim-card.pendente {
+    border-left-color: #f39c12;
+}
+
+.scrim-card.confirmada {
+    border-left-color: #2ecc71;
+}
+
+.scrim-card.concluída,
+.scrim-card.cancelada {
+    border-left-color: var(--color-text-secondary);
+    opacity: 0.7;
+}
+
+.scrim-info {
+    text-align: left;
 }
 
 .scrim-info strong {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: white;
+    font-weight: 600;
+}
+
+.scrim-info .vs-text {
+    color: var(--color-glow-end);
+    font-weight: 700;
+    font-size: 1em;
+    margin: 0 0.5rem;
+    vertical-align: middle;
 }
 
 .scrim-info p {
-    margin: 0.25rem 0 0 0;
+    margin: 0.5rem 0 0 0;
     color: var(--color-text-secondary);
+}
+
+.scrim-scheduled-date {
+    margin: 0.5rem 0 0 0;
+    color: var(--color-text-primary);
+    font-weight: 500;
+}
+
+.scrim-request-date {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
 }
 
 .scrim-actions {
     display: flex;
     gap: 0.5rem;
-}
-
-.scrim-info .vs-text {
-    color: var(--color-glow-end);
-    font-weight: normal;
 }

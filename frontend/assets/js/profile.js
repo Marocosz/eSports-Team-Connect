@@ -1,3 +1,5 @@
+// assets/js/profile.js - Versão Final e Completa
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- O "SEGURANÇA" DA PÁGINA ---
     const token = localStorage.getItem('accessToken');
@@ -6,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // --- ELEMENTOS DA PÁGINA ---
+    // --- ELEMENTOS DO DOM ---
     const teamNameEl = document.getElementById('profile-team-name');
     const tagEl = document.getElementById('profile-tag');
     const bioEl = document.getElementById('profile-bio');
@@ -17,42 +19,60 @@ document.addEventListener('DOMContentLoaded', () => {
     const postFeedEl = document.getElementById('profile-post-feed');
     const playersListDiv = document.getElementById('profile-players-list');
     const logoutButton = document.getElementById('logout-button');
-
+    
+    // --- Elementos do Modal de Scrim ---
+    const scrimModal = document.getElementById('scrim-modal');
+    const closeScrimModalBtn = document.getElementById('close-scrim-modal-btn');
+    const proposeScrimForm = document.getElementById('propose-scrim-form');
+    const scrimOpponentName = document.getElementById('scrim-opponent-name');
+    
     const API_URL = 'http://127.0.0.1:8000/api';
     let myProfile = null;
+    let viewedProfile = null;
 
-    /**
-     * Pega o ID do perfil da URL (ex: profile.html?id=123)
-     * @returns {string|null} O ID do perfil ou null se não houver.
-     */
+    // =========================================================================
+    // --- FUNÇÕES ---
+    // =========================================================================
+
     function getProfileIdFromUrl() {
         const params = new URLSearchParams(window.location.search);
         return params.get('id');
     }
+    
+    function openScrimModal(opponent) {
+        if (!scrimModal) return;
+        scrimOpponentName.textContent = opponent.team_name;
+        document.getElementById('scrim-game').value = opponent.main_game || '';
+        scrimModal.style.display = 'flex';
+    }
 
-    /**
-     * Renderiza o cabeçalho da página de perfil.
-     * @param {object} team - O objeto do time com os dados do perfil.
-     */
-    function renderProfileHeader(team) {
-        teamNameEl.textContent = team.team_name;
-        tagEl.textContent = `[${team.tag || 'N/A'}]`;
-        bioEl.textContent = team.bio || 'Este time ainda não tem uma bio.';
-        if (team.team_name) {
-            avatarEl.textContent = team.team_name.charAt(0).toUpperCase();
+    function closeScrimModal() {
+        if (!scrimModal) return;
+        scrimModal.style.display = 'none';
+    }
+
+    async function renderProfileHeader(teamData, myProfileData) {
+        teamNameEl.textContent = teamData.team_name;
+        tagEl.textContent = `[${teamData.tag || 'N/A'}]`;
+        bioEl.textContent = teamData.bio || 'Este time ainda não tem uma bio.';
+        if (teamData.team_name) {
+            avatarEl.textContent = teamData.team_name.charAt(0).toUpperCase();
         }
-
-        if (myProfile && myProfile.id === team.id) {
+        
+        if (myProfileData.id === teamData.id) {
             actionsEl.innerHTML = `<a href="edit-profile.html" class="btn">Editar Perfil</a>`;
         } else {
-            actionsEl.innerHTML = `<button class="btn add-friend-btn" data-team-id="${team.id}">Adicionar Amigo</button>`;
+            const friendsResponse = await fetch(`${API_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const myFriends = await friendsResponse.json();
+            const friendIds = myFriends.map(f => f.id);
+            if (friendIds.includes(teamData.id)) {
+                actionsEl.innerHTML = `<button class="btn schedule-scrim-btn">Agendar Scrim</button>`;
+            } else {
+                actionsEl.innerHTML = `<button class="btn add-friend-btn" data-team-id="${teamData.id}">Adicionar Amigo</button>`;
+            }
         }
     }
 
-    /**
-     * Renderiza a lista de amigos na sidebar.
-     * @param {Array} friends - A lista de amigos do time.
-     */
     function renderFriends(friends) {
         if (!friendsCountEl || !friendsListEl) return;
         friendsCountEl.textContent = friends.length;
@@ -67,10 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    /**
-     * Renderiza a grade de jogadores do time.
-     * @param {Array} players - A lista de jogadores do time.
-     */
     function renderPlayers(players) {
         if (!playersListDiv) return;
         if (!players || players.length === 0) {
@@ -85,11 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    /**
-     * Renderiza o feed de posts do time.
-     * @param {Array} posts - A lista de posts do time.
-     */
-    function renderPosts(posts) {
+    function renderPosts(posts, myProfileData) {
         if (!postFeedEl) return;
         if (!posts || posts.length === 0) {
             postFeedEl.innerHTML = '<p>Este time ainda não fez nenhuma publicação.</p>';
@@ -97,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         let postsHTML = '';
         posts.forEach(post => {
-            const isLikedByCurrentUser = myProfile && post.likes && post.likes.includes(myProfile.id);
+            const isLikedByCurrentUser = myProfileData && post.likes && post.likes.includes(myProfileData.id);
             postsHTML += `
                 <div class="post-card" data-post-id="${post.id}">
                     <div class="post-header">
@@ -137,46 +149,20 @@ document.addEventListener('DOMContentLoaded', () => {
         postFeedEl.innerHTML = postsHTML;
     }
 
-    /**
-     * Orquestra o carregamento de todos os dados da página.
-     */
-    async function initializeProfilePage() {
-        let profileId = getProfileIdFromUrl();
-
+    async function sendFriendRequest(targetTeamId, buttonElement) {
         try {
-            const myProfileResponse = await fetch(`${API_URL}/teams/me/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
-            myProfile = await myProfileResponse.json();
-            if (!myProfileResponse.ok) throw new Error("Falha ao buscar seu perfil");
-
-            if (!profileId) {
-                profileId = myProfile.id;
+            const response = await fetch(`${API_URL}/friends/request/${targetTeamId}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Falha ao enviar pedido.');
             }
-        } catch (e) {
-            handleAuthError();
-            return;
-        }
-
-        try {
-            const [profileRes, postsRes, friendsRes] = await Promise.all([
-                fetch(`${API_URL}/teams/${profileId}`),
-                fetch(`${API_URL}/teams/${profileId}/posts`),
-                fetch(`${API_URL}/teams/${profileId}/friends`)
-            ]);
-
-            if (!profileRes.ok) throw new Error("Perfil não encontrado");
-
-            const profileData = await profileRes.json();
-            const postsData = await postsRes.json();
-            const friendsData = await friendsRes.json();
-
-            renderProfileHeader(profileData);
-            renderPlayers(profileData.players);
-            renderPosts(postsData);
-            renderFriends(friendsData);
-
+            buttonElement.textContent = 'Enviado';
+            buttonElement.disabled = true;
         } catch (error) {
-            console.error("Erro ao carregar dados do perfil:", error);
-            document.querySelector('.dashboard-container').innerHTML = '<h2>Erro ao carregar perfil. O time pode não existir.</h2>';
+            alert(error.message);
         }
     }
 
@@ -186,6 +172,42 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'login.html';
     }
 
+    async function initializeProfilePage() {
+        try {
+            const myProfileResponse = await fetch(`${API_URL}/teams/me/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+            myProfile = await myProfileResponse.json();
+            if (!myProfileResponse.ok) throw new Error("Falha ao buscar seu perfil");
+
+            let profileId = getProfileIdFromUrl();
+            if (!profileId) {
+                profileId = myProfile.id;
+            }
+
+            const [profileRes, postsRes, friendsRes] = await Promise.all([
+                fetch(`${API_URL}/teams/${profileId}`),
+                fetch(`${API_URL}/teams/${profileId}/posts`),
+                fetch(`${API_URL}/teams/${profileId}/friends`)
+            ]);
+
+            if (!profileRes.ok) throw new Error("Perfil não encontrado");
+
+            viewedProfile = await profileRes.json();
+            const postsData = await postsRes.json();
+            const friendsData = await friendsRes.json();
+
+            await renderProfileHeader(viewedProfile, myProfile);
+            renderPlayers(viewedProfile.players);
+            renderPosts(postsData, myProfile);
+            renderFriends(friendsData);
+
+        } catch (error) {
+            console.error("Erro ao carregar dados do perfil:", error);
+            handleAuthError();
+        }
+    }
+
+    // --- EVENT LISTENERS ---
+
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
             localStorage.removeItem('accessToken');
@@ -193,6 +215,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Inicia o carregamento da página.
+    if (closeScrimModalBtn) closeScrimModalBtn.addEventListener('click', closeScrimModal);
+    if (scrimModal) scrimModal.addEventListener('click', (event) => {
+        if (event.target === scrimModal) closeScrimModal();
+    });
+
+    if (proposeScrimForm) {
+        proposeScrimForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const date = document.getElementById('scrim-date').value;
+            const time = document.getElementById('scrim-time').value;
+            const scrimDatetime = `${date}T${time}:00`;
+            const scrimData = {
+                opponent_team_id: viewedProfile.id,
+                scrim_datetime: scrimDatetime,
+                game: document.getElementById('scrim-game').value
+            };
+            try {
+                const response = await fetch(`${API_URL}/scrims`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(scrimData)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail);
+                alert('Convite de Scrim enviado com sucesso!');
+                closeScrimModal();
+            } catch (error) {
+                alert(`Erro ao enviar convite: ${error.message}`);
+            }
+        });
+    }
+
+    if (actionsEl) {
+        actionsEl.addEventListener('click', (event) => {
+            if (event.target.matches('.schedule-scrim-btn')) {
+                openScrimModal(viewedProfile);
+            }
+            if (event.target.matches('.add-friend-btn')) {
+                const targetId = event.target.dataset.teamId;
+                sendFriendRequest(targetId, event.target);
+            }
+        });
+    }
+
+    // Adicione aqui os listeners para likes e comentários na página de perfil, se necessário
+    if (postFeedEl) {
+        // A lógica de handleFeedClick do home.js pode ser reutilizada aqui
+    }
+
+    // --- INICIALIZAÇÃO ---
     initializeProfilePage();
 });

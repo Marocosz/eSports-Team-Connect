@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Roda o script apenas se o usuário estiver logado
     const token = localStorage.getItem('accessToken');
     if (!token) {
-        return; 
+        return;
     }
 
     // --- Elementos Globais da Navbar/Modal ---
@@ -14,6 +14,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModalBtn = document.getElementById('close-modal-btn');
     const notificationListDiv = document.getElementById('notification-list');
     const API_URL = 'http://127.0.0.1:8000/api';
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const query = searchInput.value.trim();
+            if (query) {
+                // Redireciona para a página de busca com o termo na URL
+                window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+            }
+        });
+    }
 
     /**
      * Busca o número de pedidos de amizade e atualiza o sino de notificação.
@@ -21,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateNotificationCount() {
         // Garante que o elemento do contador exista na página atual
         if (!notificationCountSpan) return;
-        
+
         try {
             const response = await fetch(`${API_URL}/friends/requests`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -51,12 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const requests = await response.json();
-            
+
             if (requests.length === 0) {
                 notificationListDiv.innerHTML = '<p>Nenhuma notificação nova.</p>';
                 return;
             }
-            
+
             notificationListDiv.innerHTML = requests.map(req => `
                 <div class="social-item" data-id="${req.id}">
                     <span>Pedido de amizade de <strong>${req.team_name}</strong></span>
@@ -89,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Falha ao aceitar o pedido.');
-            
+
             // Sucesso! Atualiza o conteúdo do modal e o contador no sino.
             openNotificationModal();
             updateNotificationCount();
@@ -111,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (modal) {
         // Listener para o botão de fechar
-        if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
 
         // Listener para fechar o modal clicando fora dele
         modal.addEventListener('click', (event) => {
@@ -121,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Listener para os botões de 'Aceitar' dentro da lista
-        if(notificationListDiv) {
+        if (notificationListDiv) {
             notificationListDiv.addEventListener('click', (event) => {
                 if (event.target.matches('.accept-btn')) {
                     const requesterId = event.target.closest('.social-item').dataset.id;

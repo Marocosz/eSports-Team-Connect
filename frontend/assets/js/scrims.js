@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const welcomeTeamName = document.getElementById('welcome-team-name');
     const logoutButton = document.getElementById('logout-button');
     const API_URL = 'http://127.0.0.1:8000/api';
-    
+
     let myProfile = null;
 
     /**
@@ -23,16 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function fetchMyProfile() {
         try {
-            const response = await fetch(`${API_URL}/teams/me/profile`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const response = await fetch(`${API_URL}/teams/me/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
             const data = await response.json();
             if (!response.ok) throw new Error(data.detail);
-            
+
             myProfile = data;
             if (welcomeTeamName) {
                 welcomeTeamName.textContent = myProfile.team_name;
             }
             return data; // Retorna os dados do perfil
-        } catch(error) {
+        } catch (error) {
             console.error("Erro ao buscar perfil:", error);
             localStorage.removeItem('accessToken');
             window.location.href = 'login.html';
@@ -80,25 +80,31 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         element.innerHTML = scrims.map(scrim => {
-            // --- LÓGICA CORRIGIDA PARA EXIBIR AMBOS OS TIMES ---
+            // Pega os nomes dos times
             const proposingTeamName = scrim.proposing_team ? scrim.proposing_team.team_name : 'Time Desconhecido';
             const opponentTeamName = scrim.opponent_team ? scrim.opponent_team.team_name : 'Time Desconhecido';
-            const date = new Date(scrim.scrim_datetime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+            // Formata as duas datas que agora vamos exibir
+            const scheduledDate = new Date(scrim.scrim_datetime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            const requestedDate = new Date(scrim.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
             const amITheOpponent = myProfile && scrim.opponent_team.id === myProfile.id;
 
             return `
-                <div class="scrim-card ${scrim.status.toLowerCase()}">
-                    <div class="scrim-info">
-                        <strong>${proposingTeamName} <span class="vs-text">vs</span> ${opponentTeamName}</strong>
-                        <p>${scrim.game} - ${date}</p>
-                    </div>
-                    ${(type === 'pending' && amITheOpponent) ? `
-                        <div class="scrim-actions">
-                            <button class="btn btn-small accept-scrim-btn" data-scrim-id="${scrim.id}">Aceitar</button>
-                        </div>
-                    ` : ''}
+            <div class="scrim-card ${scrim.status.toLowerCase()}">
+                <div class="scrim-info">
+                    <strong>${proposingTeamName} <span class="vs-text">vs</span> ${opponentTeamName}</strong>
+                    
+                    <p class="scrim-scheduled-date"><strong>Agendado para:</strong> ${scheduledDate}</p>
+                    <p class="scrim-request-date">Proposta em: ${requestedDate}</p>
                 </div>
-            `;
+                ${(type === 'pending' && amITheOpponent) ? `
+                    <div class="scrim-actions">
+                        <button class="btn btn-small accept-scrim-btn" data-scrim-id="${scrim.id}">Aceitar</button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
         }).join('');
     }
 
@@ -120,12 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(error.message);
         }
     }
-    
+
     /**
      * Orquestra o carregamento da página, garantindo a ordem correta.
      */
     async function initializePage() {
-        const myProfileData = await fetchMyProfile(); 
+        const myProfileData = await fetchMyProfile();
         if (myProfileData) {
             await fetchAndRenderScrims(myProfileData);
             if (pendingListDiv) {
@@ -138,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
     // Adiciona a lógica de logout
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {

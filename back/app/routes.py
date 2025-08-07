@@ -1,7 +1,7 @@
 # app/routes.py - VERSÃO COMPLETA E ORGANIZADA
 
-from fastapi import APIRouter, HTTPException, status, Depends
-from typing import List, Annotated
+from fastapi import APIRouter, HTTPException, status, Depends,  Query
+from typing import List, Annotated, Optional
 from beanie import PydanticObjectId
 from datetime import timedelta
 
@@ -20,6 +20,7 @@ from .security import hash_password, verify_password, create_access_token, get_c
 from fastapi.security import OAuth2PasswordRequestForm
 from .config import settings
 from beanie.odm.operators.find.logical import Or
+from beanie.odm.operators.find.evaluation import RegEx
 
 # Inicialização do Router
 router = APIRouter()
@@ -70,6 +71,17 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 # =============================================================================
 # --- Rotas de Times e Perfis ---
 # =============================================================================
+
+@router.get("/teams/search", response_model=List[FriendInfo], tags=["Teams & Profiles"])
+async def search_teams(q: Annotated[str, Query(min_length=1)]):
+    """
+    Busca por times cujo nome corresponde a uma query de busca.
+    """
+    teams = await Team.find(
+        RegEx(Team.team_name, pattern=q, options="i")
+    ).to_list()
+    
+    return teams
 
 # Retorna uma lista de times no modelo TeamOut
 @router.get("/teams", response_model=List[TeamOut], tags=["Teams & Profiles"])
@@ -141,6 +153,8 @@ async def update_my_team_profile(
     await current_team.fetch_link(Team.players)
     # Retorna o perfil completo e atualizado.
     return current_team
+
+
 
 # =============================================================================
 # --- Rotas de Players ---

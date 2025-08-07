@@ -18,12 +18,18 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="nav-logo">eSports Connect</a>
+
+            <form id="search-form" class="search-form">
+                <input type="search" id="search-input" placeholder="Buscar times...">
+                <button type="submit"><i class="bi bi-search"></i></button>
+            </form>
+
             <ul class="nav-menu">
                 <li class="nav-item"><a href="index.html" class="nav-link">Feed</a></li>
                 <li class="nav-item"><a href="scrims.html" class="nav-link">Scrims</a></li>
                 <li class="nav-item"><a href="profile.html" class="nav-link">Meu Perfil</a></li>
                 <li class="nav-item">
-                    <a href="profile.html" class="nav-link notification-bell">
+                    <a href="#" class="nav-link notification-bell">
                         <i class="bi bi-bell-fill"></i>
                         <span id="notification-count" class="notification-count" style="display: none;"></span>
                     </a>
@@ -70,6 +76,33 @@
             <div class="post-feed" id="profile-post-feed">
             </div>
         </main>
+    </div>
+
+    <div id="scrim-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Agendar Scrim</h2>
+                <button id="close-scrim-modal-btn" class="close-button">&times;</button>
+            </div>
+            <form id="propose-scrim-form">
+                <p>Você está convidando <strong id="scrim-opponent-name"></strong> para uma scrim.</p>
+
+                <label for="scrim-date">Data:</label>
+                <input type="date" id="scrim-date" required>
+
+                <label for="scrim-time">Hora:</label>
+                <input type="time" id="scrim-time" required>
+
+                <label for="scrim-game">Jogo:</label>
+                <select id="scrim-game" required>
+                    <option value="League of Legends">League of Legends</option>
+                    <option value="Valorant">Valorant</option>
+                    <option value="Counter-Strike">Counter-Strike</option>
+                </select>
+
+                <button type="submit" class="btn">Enviar Convite</button>
+            </form>
+        </div>
     </div>
 </body>
 
