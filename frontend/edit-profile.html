@@ -11,7 +11,23 @@
 </head>
 
 <body>
-  <nav class="navbar"></nav>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">eSports Connect</a>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="index.html" class="nav-link">Feed</a></li>
+        <li class="nav-item"><a href="scrims.html" class="nav-link">Scrims</a></li>
+        <li class="nav-item"><a href="profile.html" class="nav-link">Meu Perfil</a></li>
+        <li class="nav-item">
+          <a href="profile.html" class="nav-link notification-bell">
+            <i class="bi bi-bell-fill"></i>
+            <span id="notification-count" class="notification-count" style="display: none;"></span>
+          </a>
+        </li>
+      </ul>
+      <button id="logout-button" class="btn nav-button">Sair</button>
+    </div>
+  </nav>
 
   <div class="container">
     <header>

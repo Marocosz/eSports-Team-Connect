@@ -878,3 +878,48 @@ a.post-author-link:visited {
 .delete-player-btn:hover {
     color: var(--color-glow-end); /* Fica magenta ao passar o mouse */
 }
+
+/* --- Estilos da Página de Scrims --- */
+.scrim-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.scrim-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--color-background);
+    border-radius: 6px;
+    border-left: 4px solid var(--color-border);
+}
+
+.scrim-card.pending {
+    border-left-color: var(--color-glow-start); /* Roxo para pendente */
+}
+
+.scrim-card.confirmed {
+    border-left-color: #238636; /* Verde para confirmado */
+}
+
+.scrim-info strong {
+    font-size: 1.1rem;
+    color: white;
+}
+
+.scrim-info p {
+    margin: 0.25rem 0 0 0;
+    color: var(--color-text-secondary);
+}
+
+.scrim-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.scrim-info .vs-text {
+    color: var(--color-glow-end);
+    font-weight: normal;
+}

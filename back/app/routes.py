@@ -13,11 +13,13 @@ from .models import (
     PostCreate, PostOut,
     CommentCreate,
     Token, FriendInfo, TeamUpdate, LolRoleEnum,
-    ValorantRoleEnum, CsRoleEnum, GameEnum
+    ValorantRoleEnum, CsRoleEnum, GameEnum,
+    Scrim, ScrimCreate, ScrimOut, ScrimStatusEnum
 )
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
 from .config import settings
+from beanie.odm.operators.find.logical import Or
 
 # Inicialização do Router
 router = APIRouter()
@@ -546,3 +548,112 @@ async def get_team_friends(team_id: PydanticObjectId):
     await team.fetch_link(Team.friends)
     # Retorna a lista de amigos.
     return team.friends
+
+# =============================================================================
+# --- Rotas para Scrims (Protegidas) ---
+# =============================================================================
+
+# Define a rota POST para criar/propor uma nova scrim.
+@router.post("/scrims", response_model=ScrimOut, status_code=status.HTTP_201_CREATED, tags=["Scrims (Protected)"])
+# A função recebe os dados da scrim (oponente, data, jogo) e o time logado (proponente).
+async def propose_scrim(
+    scrim_data: ScrimCreate,
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """Propõe uma nova scrim para outro time."""
+    # Busca no banco o time que foi convidado (oponente).
+    opponent_team = await Team.get(scrim_data.opponent_team_id)
+    # Valida se o oponente existe e não é o próprio time.
+    if not opponent_team or opponent_team.id == current_team.id:
+        raise HTTPException(status_code=404, detail="Time oponente inválido ou não encontrado.")
+
+    # Cria a instância do documento Scrim...
+    scrim = Scrim(
+        proposing_team=current_team, # ...definindo o time logado como proponente.
+        opponent_team=opponent_team, # ...o time alvo como oponente.
+        scrim_datetime=scrim_data.scrim_datetime, # ...a data e hora.
+        game=scrim_data.game, # ...e o jogo.
+        # O status inicial já é "Pendente" por padrão.
+    )
+    # Insere a nova scrim na coleção 'scrims'.
+    await scrim.insert()
+
+    # Carrega os dados completos dos times (proponente e oponente) para a resposta.
+    await scrim.fetch_all_links()
+    
+    # Retorna o objeto da scrim recém-criada, formatado pelo `ScrimOut`.
+    return scrim
+
+@router.get("/scrims/me", response_model=List[ScrimOut], tags=["Scrims (Protected)"])
+async def get_my_scrims(current_team: Annotated[Team, Depends(get_current_team)]):
+    """
+    Lista todas as scrims (propostas ou recebidas) do time logado.
+    Esta versão busca todos os dados e filtra em Python para máxima robustez.
+    """
+    # Etapa 1: Busca TODAS as scrims no banco de dados, já carregando os dados dos times.
+    all_scrims = await Scrim.find_all(fetch_links=True).to_list()
+
+    # Etapa 2: Filtra a lista em Python para encontrar apenas as scrims que envolvem o time logado.
+    my_scrims = []
+    for scrim in all_scrims:
+        # Verifica se o time logado é o proponente OU o oponente.
+        if scrim.proposing_team.id == current_team.id or scrim.opponent_team.id == current_team.id:
+            my_scrims.append(scrim)
+    
+    # Etapa 3: Ordena a lista filtrada pela data, do mais novo para o mais antigo.
+    my_scrims.sort(key=lambda s: s.scrim_datetime, reverse=True)
+
+    # Retorna a lista final e correta de scrims.
+    return my_scrims
+
+# Define a rota POST para aceitar uma scrim, usando o ID da scrim na URL.
+@router.post("/scrims/{scrim_id}/accept", response_model=ScrimOut, tags=["Scrims (Protected)"])
+# Recebe o ID da scrim da URL e o time logado (quem está aceitando).
+async def accept_scrim(
+    scrim_id: PydanticObjectId,
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """Aceita um convite de scrim (apenas o oponente pode aceitar)."""
+    # Busca a scrim específica pelo ID e já carrega os dados dos times.
+    scrim = await Scrim.get(scrim_id, fetch_links=True)
+    if not scrim:
+        raise HTTPException(status_code=404, detail="Scrim não encontrada.")
+    
+    # Etapa de AUTORIZAÇÃO: Garante que apenas o time convidado (opponent_team) pode aceitar.
+    if scrim.opponent_team.id != current_team.id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para aceitar este convite.")
+        
+    # Garante que a scrim ainda esteja com o status "Pendente".
+    if scrim.status != ScrimStatusEnum.PENDING:
+        raise HTTPException(status_code=400, detail="Esta scrim não está mais pendente.")
+        
+    # Atualiza o status da scrim para 'Confirmada'.
+    scrim.status = ScrimStatusEnum.CONFIRMED
+    # Salva a alteração no banco de dados.
+    await scrim.save()
+    
+    # Retorna a scrim com seu novo status.
+    return scrim
+
+# Define a rota POST para recusar um convite de scrim.
+@router.post("/scrims/{scrim_id}/decline", status_code=status.HTTP_204_NO_CONTENT, tags=["Scrims (Protected)"])
+# Recebe o ID da scrim e o time logado (quem está recusando).
+async def decline_scrim(
+    scrim_id: PydanticObjectId,
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """Recusa um convite de scrim (apenas o oponente pode recusar)."""
+    # Busca a scrim que será recusada.
+    scrim = await Scrim.get(scrim_id, fetch_links=True)
+    if not scrim:
+        raise HTTPException(status_code=404, detail="Scrim não encontrada.")
+    
+    # Etapa de AUTORIZAÇÃO: Garante que apenas o time convidado pode recusar.
+    if scrim.opponent_team.id != current_team.id:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para recusar este convite.")
+        
+    # Em vez de mudar o status, simplesmente deletamos o convite recusado.
+    await scrim.delete()
+    
+    # Retorna sucesso sem conteúdo.
+    return None

@@ -1,4 +1,4 @@
-# populate.py - Versão Final e Robusta
+# populate.py - Versão Final com Scrims
 
 import asyncio
 import random
@@ -6,9 +6,10 @@ from faker import Faker
 import motor.motor_asyncio
 
 from beanie import init_beanie
+# Importa todos os modelos e Enums necessários
 from app.models import (
-    Team, Player, Post, Comment, PostAuthor,
-    GameEnum, LolRoleEnum, ValorantRoleEnum, CsRoleEnum
+    Team, Player, Post, Comment, PostAuthor, Scrim,
+    GameEnum, LolRoleEnum, ValorantRoleEnum, CsRoleEnum, ScrimStatusEnum
 )
 from app.config import settings
 from app.security import hash_password
@@ -16,6 +17,7 @@ from app.security import hash_password
 # --- Configurações ---
 NUMBER_OF_TEAMS = 20
 NUMBER_OF_POSTS = 50
+NUMBER_OF_SCRIMS = 25 # <-- NOVO
 FAKE_PASSWORD = "password123"
 
 ROLE_MAP = {
@@ -26,14 +28,15 @@ ROLE_MAP = {
 
 async def populate():
     """
-    Script para limpar o banco de dados e popular com dados falsos de forma segura.
+    Script para limpar o banco de dados e popular com dados falsos e interconectados.
     """
     print("🚀 Iniciando o script de população avançada...")
 
     # --- 1. Conexão ---
     client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGODB_URI)
     database = client[settings.DATABASE_NAME]
-    await init_beanie(database=database, document_models=[Team, Player, Post])
+    # Adiciona Scrim aos modelos a serem inicializados
+    await init_beanie(database=database, document_models=[Team, Player, Post, Scrim])
     print("✅ Conexão com o banco de dados estabelecida.")
 
     # --- 2. Limpeza ---
@@ -41,6 +44,7 @@ async def populate():
     await Team.delete_all()
     await Player.delete_all()
     await Post.delete_all()
+    await Scrim.delete_all() # <-- NOVO: Limpa as scrims antigas
     print("✅ Coleções limpas com sucesso.")
 
     # --- 3. Criar Times ---
@@ -64,9 +68,7 @@ async def populate():
     
     await Team.insert_many(teams_to_create)
     print(f"✅ {len(teams_to_create)} times criados.")
-
-    # --- GARANTIA DE SEGURANÇA 1: Buscamos os times do banco ---
-    # Isso garante que `created_teams` contém objetos 100% válidos para criar referências.
+    
     created_teams = await Team.find_all().to_list()
 
     # --- 4. Criar Jogadores para cada Time ---
@@ -84,11 +86,8 @@ async def populate():
             players_to_create.append(player_data)
     
     await Player.insert_many(players_to_create)
-    
-    # --- GARANTIA DE SEGURANÇA 2: Buscamos os jogadores do banco ---
     created_players = await Player.find_all().to_list()
 
-    # Atualiza cada time com sua lista de jogadores
     for team in created_teams:
         team.players = [p for p in created_players if p.team and p.team.to_ref().id == team.id]
         await team.save()
@@ -105,21 +104,16 @@ async def populate():
         posts_to_create.append(post_data)
         
     await Post.insert_many(posts_to_create)
-
-    # --- GARANTIA DE SEGURANÇA 3: Buscamos os posts do banco ---
     created_posts = await Post.find_all().to_list()
     print(f"✅ {len(created_posts)} posts criados.")
 
     # --- 6. Simular Likes e Comentários ---
     print("\n❤️💬 Simulando likes e comentários...")
     for post in created_posts:
-        # Adicionar likes
         if random.random() > 0.3:
             num_likes = random.randint(1, len(created_teams) // 2)
             likers = random.sample(created_teams, k=num_likes)
             post.likes = likers
-        
-        # Adicionar comentários
         if random.random() > 0.5:
             num_comments = random.randint(1, 3)
             for _ in range(num_comments):
@@ -127,10 +121,30 @@ async def populate():
                 author_data = PostAuthor(id=commenter.id, team_name=commenter.team_name, tag=commenter.tag)
                 comment = Comment(author=author_data, content=fake.sentence(nb_words=random.randint(5, 15)))
                 post.comments.append(comment)
-        
         if post.likes or post.comments:
             await post.save()
     print("✅ Interações sociais simuladas com sucesso.")
+
+    # --- 7. Simular Scrims ---
+    print(f"\n⚔️ Criando {NUMBER_OF_SCRIMS} scrims aleatórias...")
+    scrims_to_create = []
+    valid_statuses = [s.value for s in ScrimStatusEnum]
+    for _ in range(NUMBER_OF_SCRIMS):
+        # Sorteia dois times diferentes para a scrim
+        proposer, opponent = random.sample(created_teams, k=2)
+        
+        scrim_data = Scrim(
+            proposing_team=proposer,
+            opponent_team=opponent,
+            scrim_datetime=fake.future_datetime(end_date="+30d"), # Data no futuro
+            game=proposer.main_game, # O jogo da scrim é o jogo principal de quem propôs
+            status=random.choice(valid_statuses) # Status aleatório
+        )
+        scrims_to_create.append(scrim_data)
+    
+    await Scrim.insert_many(scrims_to_create)
+    print(f"✅ {len(scrims_to_create)} scrims criadas.")
+
 
     # --- Conclusão ---
     print("\n" + "="*50)

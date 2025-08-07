@@ -45,6 +45,12 @@ class CsRoleEnum(str, Enum):
     LURKER = "Lurker"
     AWPER = "AWPer"
     IGL = "IGL (In-Game Leader)"
+    
+class ScrimStatusEnum(str, Enum):
+    PENDING = "Pendente"
+    CONFIRMED = "Confirmada"
+    CANCELED = "Cancelada"
+    COMPLETED = "Concluída"
 
 class Socials(BaseModel):
     """Modelo para as redes sociais de um time."""
@@ -184,6 +190,37 @@ class PostOut(BaseModel):
     likes: List[PydanticObjectId]
     likes_count: int
     comments: List[Comment]
+    
+# -----------------------------------------------------------------------------
+# Modelos de Scrim
+# -----------------------------------------------------------------------------
+class Scrim(Document):
+    """Representa um agendamento de scrim no banco de dados (coleção 'scrims')."""
+    proposing_team: Link[Team]
+    opponent_team: Link[Team]
+    scrim_datetime: datetime.datetime
+    game: GameEnum
+    status: ScrimStatusEnum = ScrimStatusEnum.PENDING
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
+
+    class Settings:
+        name = "scrims"
+
+class ScrimCreate(BaseModel):
+    """Modelo para receber os dados de criação de uma nova scrim."""
+    opponent_team_id: PydanticObjectId
+    scrim_datetime: datetime.datetime
+    game: GameEnum
+
+class ScrimOut(BaseModel):
+    """Modelo para exibir uma scrim na API."""
+    id: PydanticObjectId
+    proposing_team: FriendInfo # Reutilizamos o modelo de info de time
+    opponent_team: FriendInfo
+    scrim_datetime: datetime.datetime
+    game: GameEnum
+    status: ScrimStatusEnum
+    created_at: datetime.datetime
 
 # -----------------------------------------------------------------------------
 # Modelos de Autenticação
@@ -192,3 +229,4 @@ class Token(BaseModel):
     """Modelo para a resposta do token de login."""
     access_token: str
     token_type: str
+    

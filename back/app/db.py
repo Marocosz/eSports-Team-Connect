@@ -1,6 +1,6 @@
 import motor.motor_asyncio
 from beanie import init_beanie
-from .models import Team, Player, Post
+from .models import Team, Player, Post, Scrim
 from .config import settings
 
 async def init_db():
@@ -15,6 +15,7 @@ async def init_db():
             Team,  
             Player,
             Post,
+            Scrim
         ]
     )
     print("Conexão com o banco de dados inicializada com sucesso.")

@@ -1,22 +1,27 @@
-// assets/js/main.js - Versão com Lógica de Modal
+// assets/js/main.js - Versão Final Segura
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Roda o script apenas se o usuário estiver logado
     const token = localStorage.getItem('accessToken');
-    if (!token) return; // Se não está logado, não faz nada
+    if (!token) {
+        return; 
+    }
 
-    // --- Elementos Globais ---
+    // --- Elementos Globais da Navbar/Modal ---
     const notificationBell = document.querySelector('.notification-bell');
     const notificationCountSpan = document.getElementById('notification-count');
-    const API_URL = 'http://127.0.0.1:8000/api';
-
-    // --- Elementos do Modal ---
     const modal = document.getElementById('notification-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     const notificationListDiv = document.getElementById('notification-list');
+    const API_URL = 'http://127.0.0.1:8000/api';
 
-    // --- Funções ---
-
+    /**
+     * Busca o número de pedidos de amizade e atualiza o sino de notificação.
+     */
     async function updateNotificationCount() {
+        // Garante que o elemento do contador exista na página atual
+        if (!notificationCountSpan) return;
+        
         try {
             const response = await fetch(`${API_URL}/friends/requests`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -33,7 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Abre o modal e busca a lista de pedidos de amizade.
+     */
     async function openNotificationModal() {
+        if (!modal || !notificationListDiv) return;
         modal.style.display = 'flex';
         notificationListDiv.innerHTML = '<p>Carregando...</p>';
 
@@ -56,16 +65,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             `).join('');
-
         } catch (error) {
             notificationListDiv.innerHTML = '<p class="error-message">Erro ao carregar notificações.</p>';
         }
     }
 
+    /**
+     * Fecha o modal de notificações.
+     */
     function closeModal() {
+        if (!modal) return;
         modal.style.display = 'none';
     }
 
+    /**
+     * Lida com a ação de aceitar um pedido de amizade de dentro do modal.
+     * @param {string} requesterId - O ID do time que enviou o pedido.
+     */
     async function handleAcceptRequest(requesterId) {
         try {
             const response = await fetch(`${API_URL}/friends/accept/${requesterId}`, {
@@ -74,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (!response.ok) throw new Error('Falha ao aceitar o pedido.');
             
-            // Sucesso! Atualiza o conteúdo do modal e o sino
+            // Sucesso! Atualiza o conteúdo do modal e o contador no sino.
             openNotificationModal();
             updateNotificationCount();
 
@@ -83,30 +99,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Event Listeners ---
+    // --- Event Listeners (Escutadores de Eventos) ---
+    // A verificação `if (elemento)` antes de cada listener previne o erro 'TypeError'.
 
-    // Abrir o modal
-    notificationBell.addEventListener('click', (event) => {
-        event.preventDefault(); // Impede que o link mude de página
-        openNotificationModal();
-    });
+    if (notificationBell) {
+        notificationBell.addEventListener('click', (event) => {
+            event.preventDefault(); // Impede o link de navegar para outra página
+            openNotificationModal();
+        });
+    }
 
-    // Fechar o modal
-    closeModalBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) { // Fecha o modal se clicar no fundo
-            closeModal();
+    if (modal) {
+        // Listener para o botão de fechar
+        if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+
+        // Listener para fechar o modal clicando fora dele
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Listener para os botões de 'Aceitar' dentro da lista
+        if(notificationListDiv) {
+            notificationListDiv.addEventListener('click', (event) => {
+                if (event.target.matches('.accept-btn')) {
+                    const requesterId = event.target.closest('.social-item').dataset.id;
+                    handleAcceptRequest(requesterId);
+                }
+            });
         }
-    });
-
-    // Ações dentro do modal (aceitar pedido)
-    notificationListDiv.addEventListener('click', (event) => {
-        if (event.target.matches('.accept-btn')) {
-            const requesterId = event.target.closest('.social-item').dataset.id;
-            handleAcceptRequest(requesterId);
-        }
-    });
+    }
 
     // --- Inicialização ---
+    // Atualiza o contador de notificações assim que a página carrega.
     updateNotificationCount();
 });
