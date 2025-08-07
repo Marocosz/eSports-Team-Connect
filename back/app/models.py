@@ -1,5 +1,3 @@
-# app/models.py - Versão Final com GameEnum
-
 """
 Pense neste arquivo como a planta baixa de todos os dados da sua aplicação. Ele define 
 com precisão a estrutura de cada "coisa" que existe no seu sistema: o que é um Time, o 
@@ -15,6 +13,7 @@ from pydantic import BaseModel, EmailStr, Field
 from enum import Enum
 
 # O Field serve para: Como se fosse uma "Etiqueta", demonstrando para oque vai ser aquela variável ou como vai ser
+# Enum: Define um conjunto de valores fixos que uma variável pode assumir
 
 # -----------------------------------------------------------------------------
 # Modelos Compartilhados (Pydantic & Enums)

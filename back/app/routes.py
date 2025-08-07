@@ -31,6 +31,7 @@ router = APIRouter()
 
 # async: definição de função assincrona
 # await: Ponto de pausa para rodar outras funções sem parar de fato
+# fetch_links: para buscar os dados relacionados (Links) de outros documentos
 
 # responde_model=TeamOut para deifinir como será o retorno desse endpoint
 @router.post("/teams", response_model=TeamOut, status_code=status.HTTP_201_CREATED, tags=["Auth & Registration"])
@@ -89,7 +90,6 @@ async def get_all_teams():
     """Lista todos os times com seus jogadores. Rota pública."""
     teams = await Team.find_all(fetch_links=True).to_list()
     return teams
-
 
 # Retorna o team por ID no modelo TeamOut
 @router.get("/teams/{team_id}", response_model=TeamOut, tags=["Teams & Profiles"])
@@ -368,25 +368,25 @@ async def get_popular_posts():
     """
     # Define as etapas do Aggregation Pipeline, que serão executadas em ordem.
     pipeline = [
-        # Etapa 1: Adiciona um campo temporário 'likes_count' a cada post,
+        # Adiciona um campo temporário 'likes_count' a cada post,
         # calculado pelo tamanho ($size) do seu array 'likes'.
         {
             "$addFields": {
                 "likes_count": {"$size": "$likes"}
             }
         },
-        # Etapa 2: Ordena todos os posts pelo novo campo 'likes_count',
+        # Ordena todos os posts pelo novo campo 'likes_count',
         # em ordem descendente (-1 significa do maior para o menor).
         {
             "$sort": {
                 "likes_count": -1
             }
         },
-        # Etapa 3: Pega apenas os 5 primeiros documentos da lista ordenada (o Top 5).
+        # Pega apenas os 5 primeiros documentos da lista ordenada (o Top 5).
         {
             "$limit": 5
         },
-        # Etapa 4: "Junta" ('join') com a coleção 'teams' para buscar os dados do autor de cada post.
+        # "Junta" ('join') com a coleção 'teams' para buscar os dados do autor de cada post.
         # Isso substitui o `fetch_links=True` de forma mais explícita.
         {
             "$lookup": {
@@ -396,11 +396,11 @@ async def get_popular_posts():
                 "as": "author_details"     # O nome do novo campo que conterá os dados do autor
             }
         },
-        # Etapa 5: O $lookup retorna o autor como uma lista. O $unwind desempacota essa lista.
+        # O $lookup retorna o autor como uma lista. O $unwind desempacota essa lista.
         {
             "$unwind": "$author_details"
         },
-        # Etapa 6: Formata ("projeta") o documento final para corresponder ao nosso modelo `PostOut`.
+        # Formata ("projeta") o documento final para corresponder ao nosso modelo `PostOut`.
         {
             "$project": {
                 "id": "$_id",  # Renomeia o campo _id para id.
