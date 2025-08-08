@@ -228,4 +228,10 @@ class Token(BaseModel):
     """Modelo para a resposta do token de login."""
     access_token: str
     token_type: str
+
+
+class NotificationsOut(BaseModel):
+    """Modelo para a resposta da rota de notificações."""
+    friend_requests: List[FriendInfo]
+    scrim_invites: List[ScrimOut] # Reutilizamos o modelo ScrimOut que já temos
     

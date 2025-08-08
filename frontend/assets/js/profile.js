@@ -19,13 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const postFeedEl = document.getElementById('profile-post-feed');
     const playersListDiv = document.getElementById('profile-players-list');
     const logoutButton = document.getElementById('logout-button');
-    
+
     // --- Elementos do Modal de Scrim ---
     const scrimModal = document.getElementById('scrim-modal');
     const closeScrimModalBtn = document.getElementById('close-scrim-modal-btn');
     const proposeScrimForm = document.getElementById('propose-scrim-form');
     const scrimOpponentName = document.getElementById('scrim-opponent-name');
-    
+
     const API_URL = 'http://127.0.0.1:8000/api';
     let myProfile = null;
     let viewedProfile = null;
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         return params.get('id');
     }
-    
+
     function openScrimModal(opponent) {
         if (!scrimModal) return;
         scrimOpponentName.textContent = opponent.team_name;
@@ -58,13 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (teamData.team_name) {
             avatarEl.textContent = teamData.team_name.charAt(0).toUpperCase();
         }
-        
+
         if (myProfileData.id === teamData.id) {
             actionsEl.innerHTML = `<a href="edit-profile.html" class="btn">Editar Perfil</a>`;
         } else {
             const friendsResponse = await fetch(`${API_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } });
             const myFriends = await friendsResponse.json();
             const friendIds = myFriends.map(f => f.id);
+
             if (friendIds.includes(teamData.id)) {
                 actionsEl.innerHTML = `<button class="btn schedule-scrim-btn">Agendar Scrim</button>`;
             } else {
@@ -166,6 +167,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function handleFeedClick(event) {
+        const target = event.target;
+        const postCard = target.closest('.post-card');
+        if (!postCard) return;
+        const postId = postCard.dataset.postId;
+
+        const likeButton = target.closest('.like-button');
+        if (likeButton) {
+            try {
+                const response = await fetch(`${API_URL}/posts/${postId}/like`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const updatedPost = await response.json();
+                if (!response.ok) throw new Error(updatedPost.detail);
+
+                const likesCountSpan = postCard.querySelector('.likes-count');
+                const icon = likeButton.querySelector('i');
+                likesCountSpan.textContent = updatedPost.likes_count;
+
+                if (myProfile) {
+                    const isLiked = updatedPost.likes.includes(myProfile.id);
+                    likeButton.classList.toggle('liked', isLiked);
+                    icon.classList.toggle('bi-heart-fill', isLiked);
+                    icon.classList.toggle('bi-heart', !isLiked);
+                }
+            } catch (error) {
+                console.error('Erro ao curtir:', error.message);
+                alert('Não foi possível processar o like.');
+            }
+        }
+
+        if (target.matches('.comment-form button')) {
+            event.preventDefault();
+            const commentInput = target.previousElementSibling;
+            const content = commentInput.value.trim();
+            if (!content) return;
+            try {
+                const response = await fetch(`${API_URL}/posts/${postId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ content: content })
+                });
+                const newComment = await response.json();
+                if (!response.ok) throw new Error(newComment.detail);
+
+                initializeProfilePage();
+            } catch (error) {
+                console.error('Erro ao comentar:', error.message);
+                alert('Não foi possível enviar o comentário.');
+            }
+        }
+    }
+
     function handleAuthError() {
         localStorage.removeItem('accessToken');
         alert('Sua sessão expirou. Por favor, faça o login novamente.');
@@ -207,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
-
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
             localStorage.removeItem('accessToken');
@@ -259,9 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Adicione aqui os listeners para likes e comentários na página de perfil, se necessário
     if (postFeedEl) {
-        // A lógica de handleFeedClick do home.js pode ser reutilizada aqui
+        postFeedEl.addEventListener('click', handleFeedClick);
     }
 
     // --- INICIALIZAÇÃO ---

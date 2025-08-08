@@ -35,15 +35,12 @@
             <button id="logout-button" class="btn nav-button">Sair</button>
         </div>
     </nav>
-    <div id="notification-modal" class="modal-overlay" style="display: none;">
-    </div>
 
     <div class="container">
         <header>
             <h1>Gerenciador de Scrims</h1>
             <p class="welcome-message">Bem-vindo, <strong id="welcome-team-name">...</strong>!</p>
         </header>
-
         <main class="settings-container">
             <section class="profile-section">
                 <h2>Convites Pendentes</h2>
@@ -64,6 +61,16 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <div id="notification-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Notificações</h2>
+                <button id="close-modal-btn" class="close-button">&times;</button>
+            </div>
+            <div id="notification-list" class="social-list"></div>
+        </div>
     </div>
 </body>
 

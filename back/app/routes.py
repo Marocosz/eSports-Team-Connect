@@ -14,7 +14,7 @@ from .models import (
     CommentCreate,
     Token, FriendInfo, TeamUpdate, LolRoleEnum,
     ValorantRoleEnum, CsRoleEnum, GameEnum,
-    Scrim, ScrimCreate, ScrimOut, ScrimStatusEnum
+    Scrim, ScrimCreate, ScrimOut, ScrimStatusEnum, NotificationsOut
 )
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
@@ -671,3 +671,30 @@ async def decline_scrim(
     
     # Retorna sucesso sem conteúdo.
     return None
+
+# =============================================================================
+# --- Rota de Notificações (Protegida) ---
+# =============================================================================
+
+@router.get("/notifications", response_model=NotificationsOut, tags=["Notifications (Protected)"])
+async def get_my_notifications(current_team: Annotated[Team, Depends(get_current_team)]):
+    """
+    Busca e retorna todas as notificações pendentes para o usuário logado
+    (pedidos de amizade e convites de scrim).
+    """
+    # Busca os pedidos de amizade recebidos
+    await current_team.fetch_link(Team.friend_requests_received)
+    friend_requests = current_team.friend_requests_received
+
+    # Busca os convites de scrim pendentes onde o usuário é o oponente
+    pending_scrims = await Scrim.find(
+        Scrim.opponent_team.id == current_team.id,
+        Scrim.status == ScrimStatusEnum.PENDING,
+        fetch_links=True
+    ).to_list()
+
+    # Retorna os dois tipos de notificação em um único objeto
+    return {
+        "friend_requests": friend_requests,
+        "scrim_invites": pending_scrims
+    }
