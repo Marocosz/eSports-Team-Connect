@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware # <--- IMPORTE O MIDDLEWARE
 # Lista de origens que podem fazer requisições à nossa API
 origins = [
     "http://127.0.0.1:5500",
+    "http://127.0.0.1:5501"
 ]
 
 @asynccontextmanager
