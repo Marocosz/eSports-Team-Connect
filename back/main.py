@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.db import init_db
 from app.routes import router as api_router
-from fastapi.middleware.cors import CORSMiddleware # <--- IMPORTE O MIDDLEWARE
+from fastapi.middleware.cors import CORSMiddleware 
 
 # Lista de origens que podem fazer requisições à nossa API
 origins = [

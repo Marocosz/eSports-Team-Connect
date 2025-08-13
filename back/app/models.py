@@ -8,7 +8,7 @@ O benie:  Beanie é um ODM (Object-Document Mapper) assíncrono para MongoDB,
 """
 import datetime
 from typing import List, Optional
-from beanie import Document, Link, PydanticObjectId
+from beanie import Document, Link, PydanticObjectId, Indexed
 from pydantic import BaseModel, EmailStr, Field
 from enum import Enum
 
@@ -112,9 +112,9 @@ class CommentCreate(BaseModel):
 # -----------------------------------------------------------------------------
 class Team(Document):
     """Representa um time no banco de dados (coleção 'teams'). Este é o nosso 'usuário'."""
-    email: EmailStr = Field(..., unique=True)
+    email: EmailStr = Indexed(EmailStr, unique=True)
     hashed_password: str
-    team_name: str
+    team_name: str = Indexed(unique=True)
     tag: Optional[str] = None
     logo_url: Optional[str] = None
     bio: Optional[str] = None
