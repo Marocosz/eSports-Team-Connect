@@ -114,7 +114,7 @@ class Team(Document):
     """Representa um time no banco de dados (coleção 'teams'). Este é o nosso 'usuário'."""
     email: EmailStr = Indexed(EmailStr, unique=True)
     hashed_password: str
-    team_name: str = Indexed(unique=True)
+    team_name: str = Indexed(str, unique=True)
     tag: Optional[str] = None
     logo_url: Optional[str] = None
     bio: Optional[str] = None

@@ -20,6 +20,6 @@ async def init_db():
         ]
     )
     
-    await Team.get_motor_collection().create_index("team_name", unique=True)
+    #await Team.get_motor_collection().create_index("team_name", unique=True)
 
     print("Conexão com o banco de dados inicializada com sucesso.")
