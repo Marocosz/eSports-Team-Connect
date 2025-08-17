@@ -20,6 +20,22 @@ async def init_db():
         ]
     )
     
-    #await Team.get_motor_collection().create_index("team_name", unique=True)
+    # TEAM
+    await Team.get_motor_collection().create_index("email", unique=True)
+    await Team.get_motor_collection().create_index("team_name", unique=True)
+
+    # PLAYER
+    await Player.get_motor_collection().create_index("nickname", unique=True)
+
+    # POST
+    await Post.get_motor_collection().create_index("created_at")
+    await Post.get_motor_collection().create_index("author")
+
+    # SCRIM
+    await Scrim.get_motor_collection().create_index("proposing_team")
+    await Scrim.get_motor_collection().create_index("opponent_team")
+    await Scrim.get_motor_collection().create_index("scrim_datetime")
+    await Scrim.get_motor_collection().create_index("game")
+    await Scrim.get_motor_collection().create_index("status")
 
     print("Conexão com o banco de dados inicializada com sucesso.")

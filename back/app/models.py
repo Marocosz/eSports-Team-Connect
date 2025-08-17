@@ -82,7 +82,7 @@ class FriendInfo(BaseModel):
 # -----------------------------------------------------------------------------
 class Player(Document):
     """Representa um jogador no banco de dados (coleção 'players')."""
-    nickname: str
+    nickname: str = Indexed(str, unique=True)  # Index para facilitar busca por nickname
     full_name: Optional[str] = None
     role: Optional[str] = None
     # Link para o time ao qual o jogador pertence.
@@ -167,9 +167,8 @@ class TeamUpdate(BaseModel):
 class Post(Document):
     """Representa um post no banco de dados (coleção 'posts')."""
     content: str
-    created_at: datetime.datetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.UTC))
-    author: Link[Team]
+    created_at: datetime.datetime = Indexed(datetime.datetime, default_factory=lambda: datetime.datetime.now(datetime.UTC))  # Index para buscas por data
+    author: Link[Team] = Indexed(Link[Team])  # Index para filtrar posts de um time
     likes: List[Link[Team]] = []
     comments: List[Comment] = []
 
@@ -195,11 +194,11 @@ class PostOut(BaseModel):
 # -----------------------------------------------------------------------------
 class Scrim(Document):
     """Representa um agendamento de scrim no banco de dados (coleção 'scrims')."""
-    proposing_team: Link[Team]
-    opponent_team: Link[Team]
-    scrim_datetime: datetime.datetime
-    game: GameEnum
-    status: ScrimStatusEnum = ScrimStatusEnum.PENDING
+    proposing_team: Link[Team] = Indexed(Link[Team])  # Facilita encontrar scrims propostas por um time
+    opponent_team: Link[Team] = Indexed(Link[Team])   # Facilita buscar scrims contra um time
+    scrim_datetime: datetime.datetime = Indexed(datetime.datetime)  # Index para buscas por data
+    game: GameEnum = Indexed(str)
+    status: ScrimStatusEnum = Indexed(str, default=ScrimStatusEnum.PENDING) # Index para filtrar por status
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
 
     class Settings:
@@ -234,4 +233,3 @@ class NotificationsOut(BaseModel):
     """Modelo para a resposta da rota de notificações."""
     friend_requests: List[FriendInfo]
     scrim_invites: List[ScrimOut] # Reutilizamos o modelo ScrimOut que já temos
-    
