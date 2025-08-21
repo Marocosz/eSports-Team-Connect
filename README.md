@@ -78,6 +78,19 @@ A rota `GET /api/posts/popular` foi refatorada para implementar o padrão "Cache
 ### Verificação no Cache (Cache Hit):
 Quando a rota é chamada, ela primeiro pergunta ao Redis se já existe um resultado salvo para a chave `"popular_posts"`. Se existir, ela retorna os dados diretamente do Redis.
 
+```
+    # Define a chave do cache
+    cache_key = "popular_posts"
+    # Tenta obter o resultado do cache
+    cached_result = await redis_client.get(cache_key)
+    
+    if cached_result:
+        # Cache HIT (Encontrou no cache)
+        print("CACHE HIT para posts populares!")
+        # Converte o texto JSON de volta para uma lista de objetos e retorna.
+        return json.loads(cached_result)
+```
+
 Busca no Banco (Cache Miss):
 Se os dados não estiverem no cache, a aplicação executa a consulta `Aggregation Pipeline` no MongoDB, que é uma operação mais lenta.
 
@@ -88,14 +101,16 @@ No terminal, isso é indicado pela mensagem:
 
 Salvando no Cache com Expiração:
 
-Após buscar os dados do MongoDB, a aplicação os salva no Redis. Crucialmente, é definido um tempo de expiração de 300 segundos (5 minutos).
+Após buscar os dados do MongoDB, a aplicação os salva no Redis.
 
 Trecho da rota `/posts/popular` em `routes.py`
 ```
+posts = await Post.aggregate(pipeline, projection_model=PostOut).to_list()
+
 await redis_client.set(
 cache_key,
 json.dumps([p.model_dump(mode='json') for p in posts]),
-ex=300  # <-- Define a expiração em segundos
+ex=300 
 )
 ```
 
