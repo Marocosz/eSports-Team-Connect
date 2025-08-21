@@ -17,7 +17,7 @@ from app.security import hash_password
 # --- Configurações ---
 NUMBER_OF_TEAMS = 20
 NUMBER_OF_POSTS = 50
-NUMBER_OF_SCRIMS = 25 # <-- NOVO
+NUMBER_OF_SCRIMS = 25 
 FAKE_PASSWORD = "password123"
 
 ROLE_MAP = {
