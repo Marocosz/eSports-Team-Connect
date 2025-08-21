@@ -5,7 +5,7 @@
 
 ## Atividade 29/07 (Populate)
 o caminho do script de populate é:
-\back\populate.py
+`\back\populate.py`
 
 Foi criado:
 
@@ -23,7 +23,7 @@ print da imagem do atlasdb:
 
 a criação do index foi feita da seguinte forma:
 
-dentro do \back\app\db.py temos:
+dentro do `\back\app\db.py` temos:
 
 ```
 # TEAM
@@ -47,12 +47,12 @@ await Scrim.get_motor_collection().create_index("status")
 ```
 
 que cria e define os indices do banco de dados, em conjunto com a definição dentro das classes
-que estão em \back\app\models.py
+que estão em `\back\app\models.py`
 
-por exemplo na classe de |player| temos:
+por exemplo na classe de `player` temos:
 `nickname: str = Indexed(str, unique=True)`
 
-assim para cada classe
+assim para cada atributo que precisa de index de cada classe
 
 ## Atividade 21/08 (Redis cache)
 
