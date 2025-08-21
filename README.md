@@ -57,31 +57,28 @@ assim para cada atributo que precisa de index de cada classe
 ## Atividade 21/08 (Redis cache)
 
 Como foi implementado?
-1. Instalação e Configuração:
+
+### Instalação e Configuração:
 
 A biblioteca `redis` foi adicionada ao projeto (`pip install "redis[hiredis]"`).
 
 A URL de conexão Redis Cloud foi adicionada ao arquivo `.env` e `app/config.py`:
 
-2. Módulo de Cache (`\back\app\cache.py`):
+### Módulo de Cache (`\back\app\cache.py`):
+
 Primeiro foi criado o arquivo `\back\app\cache.py` para a definição e gerenciamento da conexão com o Redis. Este módulo cria um "pool" de conexões assíncronas que pode ser reutilizado por toda a aplicação.
 
-3. Integração com o Ciclo de Vida do FastAPI (`\back\main.py`):
+### Integração com o Ciclo de Vida do FastAPI (`\back\main.py`):
+
 A função `lifespan` foi atualizada para garantir que as conexões com o Redis sejam encerradas de forma limpa quando a aplicação é desligada.
 
 A Lógica de Cache na Rota de Posts Populares
 A rota `GET /api/posts/popular` foi refatorada para implementar o padrão "Cache-Aside":
 
-4. Verificação no Cache (Cache Hit):
+### Verificação no Cache (Cache Hit):
 Quando a rota é chamada, ela primeiro pergunta ao Redis se já existe um resultado salvo para a chave `"popular_posts"`. Se existir, ela retorna os dados diretamente do Redis.
 
-No terminal do servidor, isso é indicado pela mensagem:
-`CACHE HIT para posts populares!`
-
-Ao apertar f5:
-![Já conectado ao redis](2conredis.png)
-
-1. Busca no Banco (Cache Miss):
+Busca no Banco (Cache Miss):
 Se os dados não estiverem no cache, a aplicação executa a consulta `Aggregation Pipeline` no MongoDB, que é uma operação mais lenta.
 
 No terminal, isso é indicado pela mensagem:
@@ -89,11 +86,12 @@ No terminal, isso é indicado pela mensagem:
 
 ![primeira_conexao_redis](1conredis.png)
 
-6. Salvando no Cache com Expiração:
+Salvando no Cache com Expiração:
+
 Após buscar os dados do MongoDB, a aplicação os salva no Redis. Crucialmente, é definido um tempo de expiração de 300 segundos (5 minutos).
 
+Trecho da rota `/posts/popular` em `routes.py`
 ```
-Trecho da rota /posts/popular em routes.py
 await redis_client.set(
 cache_key,
 json.dumps([p.model_dump(mode='json') for p in posts]),
@@ -101,4 +99,11 @@ ex=300  # <-- Define a expiração em segundos
 )
 ```
 
-O parâmetro `ex=300` garante que o cache seja automaticamente invalidado após 5 minutos. Isso força a aplicação a buscar uma nova lista de posts populares periodicamente, mantendo os dados atualizados sem sobrecarregar o banco de dados a cada requisição.
+Ao apertar f5 vemos isso acontecer:
+![Já conectado ao redis](2conredis.png)
+
+No terminal do servidor, isso é indicado pela mensagem:
+`CACHE HIT para posts populares!`
+
+
+OBS: O parâmetro `ex=300` garante que o cache seja automaticamente invalidado após 5 minutos. Isso força a aplicação a buscar uma nova lista de posts populares periodicamente, mantendo os dados atualizados sem sobrecarregar o banco de dados a cada requisição.
