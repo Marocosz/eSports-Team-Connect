@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REDIS_URL: str
 
     # Configuração para dizer ao Pydantic onde encontrar o arquivo .env
     model_config = SettingsConfigDict(env_file=".env")
@@ -16,3 +17,4 @@ class Settings(BaseSettings):
 
 # Cria uma instância única das configurações para ser usada no resto do projeto
 settings = Settings()
+

@@ -4,6 +4,8 @@ from fastapi import APIRouter, HTTPException, status, Depends,  Query
 from typing import List, Annotated, Optional
 from beanie import PydanticObjectId
 from datetime import timedelta
+import redis.asyncio as redis
+import json
 
 # Importação de todos os modelos necessários
 from .models import (
@@ -19,6 +21,7 @@ from .models import (
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
 from .config import settings
+from .cache import get_redis_client
 from beanie.odm.operators.find.logical import Or
 from beanie.odm.operators.find.evaluation import RegEx
 
@@ -361,11 +364,24 @@ async def create_comment_on_post(
 
 # Retorna uma lista dos 5 posts mais populares no modelo PostOut
 @router.get("/posts/popular", response_model=List[PostOut], tags=["Posts"])
-async def get_popular_posts():
+# Injeta uma conexão do nosso pool de Redis na rota
+async def get_popular_posts(redis_client: Annotated[redis.Redis, Depends(get_redis_client)]):
     """
     Retorna os 5 posts mais populares (com mais likes), usando Aggregation Pipeline
     para máxima performance.
     """
+    # Define a chave do cache
+    cache_key = "popular_posts"
+    # Tenta obter o resultado do cache
+    cached_result = await redis_client.get(cache_key)
+    
+    if cached_result:
+        # Cache HIT (Encontrou no cache)
+        print("CACHE HIT para posts populares!")
+        # Converte o texto JSON de volta para uma lista de objetos e retorna.
+        return json.loads(cached_result)
+
+    print("CACHE MISS para posts populares. Buscando no MongoDB...")
     # Define as etapas do Aggregation Pipeline, que serão executadas em ordem.
     pipeline = [
         # Adiciona um campo temporário 'likes_count' a cada post,
@@ -432,6 +448,15 @@ async def get_popular_posts():
     # O `projection_model=PostOut` converte o resultado diretamente para uma lista de objetos PostOut.
     posts = await Post.aggregate(pipeline, projection_model=PostOut).to_list()
 
+    # Antes de retornar, salva o resultado no cache para a próxima vez.
+    # Converte a lista de objetos para uma string JSON para poder salvar no Redis.
+    # `ex=300` define a expiração para 300 segundos (5 minutos).
+    await redis_client.set(
+        cache_key, 
+        json.dumps([p.model_dump(mode='json') for p in posts]), 
+        ex=300
+    )
+    
     # Retorna a lista final com os 5 posts mais populares.
     return posts
 

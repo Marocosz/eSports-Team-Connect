@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from app.db import init_db
 from app.routes import router as api_router
 from fastapi.middleware.cors import CORSMiddleware 
+from app.cache import redis_pool
 
 # Lista de origens que podem fazer requisições à nossa API
 origins = [
@@ -14,6 +15,7 @@ origins = [
 async def lifespan(app: FastAPI):
     await init_db()
     yield
+    await redis_pool.close()
     print("Aplicação encerrada.")
 
 app = FastAPI(lifespan=lifespan)
