@@ -5,6 +5,7 @@ from typing import List, Annotated, Optional
 from beanie import PydanticObjectId
 from datetime import timedelta
 import redis.asyncio as redis
+from .cache import get_redis_client
 import json
 
 # Importação de todos os modelos necessários
@@ -284,16 +285,30 @@ async def get_all_posts():
 
 # Define a rota, o que ela retorna (PostOut)
 @router.post("/posts", response_model=PostOut, status_code=status.HTTP_201_CREATED, tags=["Posts (Protected)"])
-# A função recebe os dados do post (PostCreate) e o time logado (autenticado pela dependência).
+# A função recebe os dados do post (PostCreate), o time logado (autenticado)
+# e agora também injeta o cliente Redis para podermos publicar eventos.
 async def create_post(
     post_data: PostCreate,
-    current_team: Annotated[Team, Depends(get_current_team)]
+    current_team: Annotated[Team, Depends(get_current_team)],
+    redis_client: Annotated[redis.Redis, Depends(get_redis_client)]
 ):
-    """Cria um novo post. Apenas para usuários (times) autenticados."""
+    """Cria um novo post e publica um evento no stream de atividades."""
+
     # Cria a instância do novo post, associando o conteúdo recebido e o time logado como autor.
     post = Post(content=post_data.content, author=current_team)
     # Insere o novo post na coleção 'posts' do banco de dados.
     await post.insert()
+
+    # Publica o evento no Stream
+    # Prepara os dados do evento que serão anunciados no "mural" de atividades.
+    event_data = {
+        "type": "new_post",
+        "team_name": current_team.team_name,
+        "content_preview": (post.content[:50] + '...') if len(post.content) > 50 else post.content
+    }
+    # Publica o evento no stream chamado "activity_stream" no Redis.
+    await redis_client.xadd("activity_stream", event_data)
+
     # Carrega os dados completos do autor para que possam ser incluídos na resposta.
     await post.fetch_link(Post.author)
     # Converte o objeto Post em um dicionário para facilitar a manipulação.
@@ -504,12 +519,14 @@ async def send_friend_request(
 
 # Define a rota POST com o ID do time solicitante na URL.
 @router.post("/friends/accept/{requester_team_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Friends (Protected)"])
-# A função recebe o ID do solicitante da URL e o time logado (autenticado).
+# A função recebe o ID do solicitante, o time logado (autenticado) e o cliente Redis.
 async def accept_friend_request(
     requester_team_id: PydanticObjectId,
-    current_team: Annotated[Team, Depends(get_current_team)]
+    current_team: Annotated[Team, Depends(get_current_team)],
+    redis_client: Annotated[redis.Redis, Depends(get_redis_client)] # Injeta o cliente Redis
 ):
-    """Aceita um pedido de amizade recebido."""
+    """Aceita um pedido de amizade recebido e publica um evento no stream."""
+    
     # Busca o documento completo do time que enviou o pedido.
     requester_team = await Team.get(requester_team_id)
     # Validação: Garante que o time solicitante existe.
@@ -551,6 +568,17 @@ async def accept_friend_request(
     await current_team.save()
     # Salva as alterações no documento do seu novo amigo.
     await requester_team.save()
+
+    # -Publica o evento de nova amizade no Stream
+    # Prepara os dados do evento com os nomes dos dois times.
+    event_data = {
+        "type": "new_friendship",
+        "team1_name": current_team.team_name,
+        "team2_name": requester_team.team_name
+    }
+    # Publica o evento no stream "activity_stream" no Redis.
+    await redis_client.xadd("activity_stream", event_data)
+
 
     # Retorna `None` para indicar sucesso sem conteúdo.
     return None
@@ -723,3 +751,19 @@ async def get_my_notifications(current_team: Annotated[Team, Depends(get_current
         "friend_requests": friend_requests,
         "scrim_invites": pending_scrims
     }
+    
+    
+@router.get("/activity-stream", tags=["Activity Stream"])
+async def get_activity_stream(
+    redis_client: Annotated[redis.Redis, Depends(get_redis_client)]
+):
+    """Lê e retorna os últimos 15 eventos do stream de atividades."""
+    events = await redis_client.xrevrange("activity_stream", count=15)
+    
+    formatted_events = []
+    for event_id, event_data in events:
+        formatted_events.append({
+            "id": event_id,
+            "data": event_data
+        })
+    return formatted_events

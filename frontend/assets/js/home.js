@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const discoverTeamsList = document.getElementById('discover-teams-list');
     const popularPostsList = document.getElementById('popular-posts-list');
     const API_URL = 'http://127.0.0.1:8000/api';
+    const activityStreamList = document.getElementById('activity-stream-list');
 
     let myProfile = null; // Variável global para guardar os dados do time logado
 
@@ -339,10 +340,46 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all([
             fetchAndRenderPosts(),
             fetchAndRenderDiscoverTeams(),
-            fetchAndRenderPopularPosts()
+            fetchAndRenderPopularPosts(),
+            fetchAndRenderActivityStream()
         ]);
+    }
+
+    async function fetchAndRenderActivityStream() {
+        if (!activityStreamList) return; // Só executa se o elemento existir na página
+        try {
+            const response = await fetch(`${API_URL}/activity-stream`);
+            const events = await response.json();
+            if (!response.ok) throw new Error('Falha ao buscar atividades.');
+
+            if (events.length === 0) {
+                activityStreamList.innerHTML = '<li>Nenhuma atividade recente.</li>';
+                return;
+            }
+
+            // Mapeia cada evento para uma string de HTML
+            activityStreamList.innerHTML = events.map(event => {
+                const data = event.data;
+                let text = 'Evento desconhecido.';
+
+                // Cria um texto diferente para cada tipo de evento
+                if (data.type === 'new_post') {
+                    text = `<strong>${data.team_name}</strong> publicou: "${data.content_preview}"`;
+                } else if (data.type === 'new_friendship') {
+                    text = `<strong>${data.team1_name}</strong> e <strong>${data.team2_name}</strong> agora são amigos.`;
+                }
+
+                return `<li>${text}</li>`;
+            }).join('');
+
+        } catch (error) {
+            console.error(error);
+            activityStreamList.innerHTML = '<li>Erro ao carregar.</li>';
+        }
     }
 
     // Inicia o carregamento da página.
     initializePage();
+
+
 });

@@ -1,3 +1,5 @@
+# app/models.py - Versão Final com a definição de Índices em Settings
+
 """
 Pense neste arquivo como a planta baixa de todos os dados da sua aplicação. Ele define 
 com precisão a estrutura de cada "coisa" que existe no seu sistema: o que é um Time, o 
@@ -8,9 +10,10 @@ O benie:  Beanie é um ODM (Object-Document Mapper) assíncrono para MongoDB,
 """
 import datetime
 from typing import List, Optional
-from beanie import Document, Link, PydanticObjectId, Indexed
+from beanie import Document, Link, PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field
 from enum import Enum
+from pymongo import IndexModel, ASCENDING, DESCENDING
 
 # O Field serve para: Como se fosse uma "Etiqueta", demonstrando para oque vai ser aquela variável ou como vai ser
 # Enum: Define um conjunto de valores fixos que uma variável pode assumir
@@ -82,14 +85,16 @@ class FriendInfo(BaseModel):
 # -----------------------------------------------------------------------------
 class Player(Document):
     """Representa um jogador no banco de dados (coleção 'players')."""
-    nickname: str = Indexed(str, unique=True)  # Index para facilitar busca por nickname
+    nickname: str
     full_name: Optional[str] = None
     role: Optional[str] = None
-    # Link para o time ao qual o jogador pertence.
     team: Optional[Link["Team"]] = None
 
     class Settings:
         name = "players"
+        indexes = [
+            IndexModel("nickname", unique=False), # Índice para buscas futuras por nickname
+        ]
 
 class PlayerCreate(BaseModel):
     """Modelo para criar um novo jogador via API."""
@@ -112,9 +117,9 @@ class CommentCreate(BaseModel):
 # -----------------------------------------------------------------------------
 class Team(Document):
     """Representa um time no banco de dados (coleção 'teams'). Este é o nosso 'usuário'."""
-    email: EmailStr = Indexed(EmailStr, unique=True)
+    email: EmailStr
     hashed_password: str
-    team_name: str = Indexed(str, unique=True)
+    team_name: str
     tag: Optional[str] = None
     logo_url: Optional[str] = None
     bio: Optional[str] = None
@@ -124,12 +129,15 @@ class Team(Document):
     friend_requests_sent: List[Link["Team"]] = []
     friend_requests_received: List[Link["Team"]] = []
     players: List[Link[Player]] = []
-    # default_factory = valor padrão se não for passado nenhum
     created_at: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.UTC))
 
     class Settings:
         name = "teams"
+        indexes = [
+            IndexModel("email", unique=True),
+            IndexModel("team_name", unique=True),
+        ]
 
 class TeamCreate(BaseModel):
     """Modelo para registrar um novo time via API."""
@@ -167,13 +175,17 @@ class TeamUpdate(BaseModel):
 class Post(Document):
     """Representa um post no banco de dados (coleção 'posts')."""
     content: str
-    created_at: datetime.datetime = Indexed(datetime.datetime, default_factory=lambda: datetime.datetime.now(datetime.UTC))  # Index para buscas por data
-    author: Link[Team] = Indexed(Link[Team])  # Index para filtrar posts de um time
+    created_at: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.UTC))
+    author: Link[Team]
     likes: List[Link[Team]] = []
     comments: List[Comment] = []
 
     class Settings:
         name = "posts"
+        indexes = [
+            IndexModel([("created_at", DESCENDING)]), # Índice para ordenar o feed
+        ]
 
 class PostCreate(BaseModel):
     """Modelo para criar um novo post via API."""
@@ -194,15 +206,19 @@ class PostOut(BaseModel):
 # -----------------------------------------------------------------------------
 class Scrim(Document):
     """Representa um agendamento de scrim no banco de dados (coleção 'scrims')."""
-    proposing_team: Link[Team] = Indexed(Link[Team])  # Facilita encontrar scrims propostas por um time
-    opponent_team: Link[Team] = Indexed(Link[Team])   # Facilita buscar scrims contra um time
-    scrim_datetime: datetime.datetime = Indexed(datetime.datetime)  # Index para buscas por data
-    game: GameEnum = Indexed(str)
-    status: ScrimStatusEnum = Indexed(str, default=ScrimStatusEnum.PENDING) # Index para filtrar por status
+    proposing_team: Link[Team]
+    opponent_team: Link[Team]
+    scrim_datetime: datetime.datetime
+    game: GameEnum
+    status: ScrimStatusEnum = Field(default=ScrimStatusEnum.PENDING)
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.UTC))
 
     class Settings:
         name = "scrims"
+        indexes = [
+            IndexModel([("scrim_datetime", DESCENDING)]),
+            IndexModel("status"),
+        ]
 
 class ScrimCreate(BaseModel):
     """Modelo para receber os dados de criação de uma nova scrim."""
@@ -213,7 +229,7 @@ class ScrimCreate(BaseModel):
 class ScrimOut(BaseModel):
     """Modelo para exibir uma scrim na API."""
     id: PydanticObjectId
-    proposing_team: FriendInfo # Reutilizamos o modelo de info de time
+    proposing_team: FriendInfo
     opponent_team: FriendInfo
     scrim_datetime: datetime.datetime
     game: GameEnum
@@ -228,8 +244,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-
 class NotificationsOut(BaseModel):
     """Modelo para a resposta da rota de notificações."""
     friend_requests: List[FriendInfo]
-    scrim_invites: List[ScrimOut] # Reutilizamos o modelo ScrimOut que já temos
+    scrim_invites: List[ScrimOut]
