@@ -127,16 +127,18 @@ OBS: O parâmetro `ex=300` garante que o cache seja automaticamente invalidado a
 
 Para tornar a plataforma mais dinâmica e interativa, foi implementado o **Redis Streams** para criar um feed de "Atividade Recente" em tempo real.
 
+![atividade recente imagem](atividaderecente.png)
+
 ### O que é Redis Streams?
 
 É uma estrutura de dados do Redis que funciona como um "log de eventos". A aplicação pode adicionar novos eventos a esse log, e os clientes (como o front-end) podem ler os eventos mais recentes para mostrar o que está acontecendo na plataforma.
 
 ### Como foi implementado?
 
-**1. Publicando Eventos no Back-end (|\back\app\routes.py|):**
-As rotas que representam ações importantes foram modificadas para "anunciar" um evento no stream chamado |activity_stream| sempre que são executadas com sucesso.
+**1. Publicando Eventos no Back-end (`\back\app\routes.py`):**
+As rotas que representam ações importantes foram modificadas para "anunciar" um evento no stream chamado `activity_stream` sempre que são executadas com sucesso.
 
-* **Ao criar um novo post (|POST /posts|):**
+* **Ao criar um novo post (`POST /posts`):**
 
 ```
   # ... (lógica para salvar o post) ...
@@ -149,7 +151,7 @@ As rotas que representam ações importantes foram modificadas para "anunciar" u
   
 ```
 
-* **Ao aceitar um pedido de amizade (|POST /friends/accept/...|):**
+* **Ao aceitar um pedido de amizade (`POST /friends/accept/...`):**
 
 ```
   # ... (lógica para criar a amizade) ...
@@ -165,7 +167,7 @@ As rotas que representam ações importantes foram modificadas para "anunciar" u
 **2. Lendo os Eventos (Nova Rota):**
 Foi criada uma nova rota pública para que o front-end possa ler os últimos eventos do mural.
 
-* **|GET /api/activity-stream|**:
+* **`GET /api/activity-stream`**:
 
 ```
   @router.get("/activity-stream", tags=["Activity Stream"])
@@ -177,8 +179,8 @@ Foi criada uma nova rota pública para que o front-end possa ler os últimos eve
       return formatted_events
   
 ```
-**3. Exibindo no Front-end (|\frontend\assets\js\home.js|):**
-O script da página principal foi atualizado para chamar a nova rota |/activity-stream| e renderizar os eventos no widget "Atividade Recente".
+**3. Exibindo no Front-end (`\frontend\assets\js\home.js`):**
+O script da página principal foi atualizado para chamar a nova rota `/activity-stream` e renderizar os eventos no widget "Atividade Recente".
 
 ```
 // Trecho da função fetchAndRenderActivityStream em home.js
