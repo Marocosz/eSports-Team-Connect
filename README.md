@@ -204,3 +204,77 @@ async function fetchAndRenderActivityStream() {
 ```
 
 Essa implementação permite que o feed de atividades seja atualizado em tempo real, refletindo as ações dos usuários na plataforma
+
+
+## Atividade 04/09 (Neo4j + GDS)
+
+Para trazer funcionalidades de **recomendação de times** mais inteligentes, foi integrado o **Neo4j** com a biblioteca **Graph Data Science (GDS)**.
+
+### 1. Instalação e Configuração (Docker)
+
+O Neo4j foi configurado em container Docker para facilitar o uso do GDS.  
+As credenciais de acesso foram adicionadas ao arquivo %.env% e lidas no projeto pela classe %Settings%:
+
+```python
+class Settings(BaseSettings):
+    # Variáveis de ambiente (.env)
+    MONGODB_URI: str
+    DATABASE_NAME: str
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REDIS_URL: str
+    NEO4J_URI: str
+    NEO4J_USERNAME: str
+    NEO4J_PASSWORD: str
+
+    # Configuração do Pydantic
+    model_config = SettingsConfigDict(env_file=".env", extra='ignore')
+```
+
+### 2. Implementação no Back-end
+
+Foi criado o arquivo `\back\app\gds.py`, responsável por encapsular as funções de recomendação baseadas no **Graph Data Science**:
+
+- **`get_similar_teams(team_id)`** → Utiliza o algoritmo **Node Similarity**, recomendando times com base em amigos em comum.  
+- **`get_top_teams_by_pagerank(team_id)`** → Utiliza o **PageRank**, destacando os times mais populares/influentes.
+
+### 3. Rota de Recomendação
+
+No arquivo `routes.py`, foi criada a rota **`/teams/recommendations`**, que une os dois algoritmos em uma estratégia híbrida:
+
+```python
+@router.get("/teams/recommendations", response_model=List[Dict], tags=["Teams & Profiles"])
+async def get_team_recommendations(
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """
+    (GDS Híbrida) Retorna uma lista de times recomendados.
+    - Se o usuário tiver amigos, tenta a recomendação por Similaridade.
+    - Se a Similaridade não retornar resultados ou se o usuário for novo,
+      usa o PageRank como fallback para recomendar os times mais populares.
+    """
+    await current_team.fetch_link(Team.friends)
+
+    recommendations = []
+
+    # Recomendação personalizada por Similaridade
+    if len(current_team.friends) > 1:
+        print("INFO: Usuário com amigos. Tentando recomendação por SIMILARIDADE.")
+        recommendations = await get_similar_teams(str(current_team.id))
+
+    # Fallback: Popularidade via PageRank
+    if not recommendations:
+        if len(current_team.friends) <= 1:
+            print("INFO: Usuário novo ou com poucos amigos. Usando recomendação por POPULARIDADE (PageRank).")
+        else:
+            print("INFO: Similaridade não retornou resultados. Usando fallback para POPULARIDADE (PageRank).")
+
+        recommendations = await get_top_teams_by_pagerank(str(current_team.id))
+
+    return recommendations
+```
+
+### 4. Front-end Atualizado
+
+No `\frontend\assets\js\home.js`, o código foi ajustado para consumir a nova rota e exibir as recomendações de times na página inicial.
