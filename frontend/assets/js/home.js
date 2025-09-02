@@ -114,13 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-         * Busca recomendações de times usando GDS e as renderiza na sidebar.
-         */
+    * Busca recomendações de times usando GDS e as renderiza na sidebar.
+    **/
     async function fetchAndRenderDiscoverTeams() {
         if (!discoverTeamsList) return;
-        discoverTeamsList.innerHTML = '<li>Buscando sugestões...</li>'; // Feedback visual
+        discoverTeamsList.innerHTML = '<li>Buscando sugestões...</li>';
         try {
-            // Chama a NOVA rota de recomendações inteligentes
             const response = await fetch(`${API_URL}/teams/recommendations`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -129,23 +128,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const recommendations = await response.json();
 
             if (recommendations.length === 0) {
-                discoverTeamsList.innerHTML = '<li>Nenhuma sugestão no momento. Adicione mais amigos para receber recomendações!</li>';
+                discoverTeamsList.innerHTML = '<li>Nenhuma sugestão no momento.</li>';
                 return;
             }
 
             discoverTeamsList.innerHTML = '';
             recommendations.forEach(team => {
                 const li = document.createElement('li');
-                // Converte o score de similaridade (ex: 0.85) para uma porcentagem (85%)
-                const similarityPercentage = Math.round(team.similarity * 100);
+
+                // --- LÓGICA DE EXIBIÇÃO INTELIGENTE ---
+                let subtext = '';
+                // Se a resposta da API tiver a chave 'similarity', mostra a afinidade.
+                if (team.similarity !== undefined) {
+                    const similarityPercentage = Math.round(team.similarity * 100);
+                    subtext = `<small class="similarity-score">${similarityPercentage}% de afinidade</small>`;
+                } else {
+                    // Senão, é uma recomendação de popularidade.
+                    subtext = `<small>Popular na rede</small>`;
+                }
 
                 li.innerHTML = `
                     <div class="discover-item-info">
                         <div class="discover-avatar">${team.team_name.charAt(0).toUpperCase()}</div>
                         <div class="discover-text">
                             <a href="profile.html?id=${team.id}" class="discover-team-link">${team.team_name}</a>
-                            <!-- Exibe o novo score de similaridade -->
-                            <small class="similarity-score">${similarityPercentage}% de afinidade</small>
+                            ${subtext}
                         </div>
                     </div>
                     <button class="btn btn-small add-friend-btn" data-team-id="${team.id}">Adicionar</button>

@@ -20,7 +20,7 @@ from .models import (
     Scrim, ScrimCreate, ScrimOut, ScrimStatusEnum, NotificationsOut
 )
 
-from .gds import get_similar_teams
+from .gds import get_similar_teams, get_top_teams_by_pagerank
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
 from .config import settings
@@ -40,6 +40,8 @@ router = APIRouter()
 # fetch_links: para buscar os dados relacionados (Links) de outros documentos
 
 # responde_model=TeamOut para deifinir como será o retorno desse endpoint
+
+
 @router.post("/teams", response_model=TeamOut, status_code=status.HTTP_201_CREATED, tags=["Auth & Registration"])
 async def create_team(team_data: TeamCreate):
     """Cria um novo time (registro de conta). Esta é uma rota pública."""
@@ -59,6 +61,8 @@ async def create_team(team_data: TeamCreate):
     return team
 
 # Vai retornar um Token
+
+
 @router.post("/login", response_model=Token, tags=["Auth & Registration"])
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     """Autentica um time e retorna um token de acesso."""
@@ -78,16 +82,42 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 # =============================================================================
 # --- Rotas de Times e Perfis ---
 # =============================================================================
+
+
 @router.get("/teams/recommendations", response_model=List[Dict], tags=["Teams & Profiles"])
 async def get_team_recommendations(
     current_team: Annotated[Team, Depends(get_current_team)]
 ):
     """
-    (GDS) Retorna uma lista de até 5 times recomendados para o usuário logado,
-    com base em amigos em comum (Similaridade de Jaccard).
+    (GDS Híbrida) Retorna uma lista de times recomendados.
+    - Se o usuário tiver amigos, tenta a recomendação por Similaridade.
+    - Se a Similaridade não retornar resultados ou se o usuário for novo,
+      usa o PageRank como fallback para recomendar os times mais populares.
     """
-    # Chama nossa função do módulo GDS, passando o ID do time logado.
-    recommendations = await get_similar_teams(str(current_team.id))
+    # Carrega a lista de amigos para tomar a decisão.
+    await current_team.fetch_link(Team.friends)
+
+    recommendations = []
+
+    # --- LÓGICA DE DECISÃO APRIMORADA ---
+
+    # Tenta a recomendação personalizada se o usuário já tiver algumas conexões.
+    if len(current_team.friends) > 1:
+        print("INFO: Usuário com amigos. Tentando recomendação por SIMILARIDADE.")
+        recommendations = await get_similar_teams(str(current_team.id))
+
+    # --- LÓGICA DE FALLBACK ---
+    # Se o usuário for novo OU se a similaridade não encontrou ninguém, usa o PageRank.
+    if not recommendations:
+        if len(current_team.friends) <= 1:
+            print(
+                "INFO: Usuário novo ou com poucos amigos. Usando recomendação por POPULARIDADE (PageRank).")
+        else:
+            print(
+                "INFO: Similaridade não retornou resultados. Usando fallback para POPULARIDADE (PageRank).")
+
+        recommendations = await get_top_teams_by_pagerank(str(current_team.id))
+
     return recommendations
 
 
@@ -99,10 +129,12 @@ async def search_teams(q: Annotated[str, Query(min_length=1)]):
     teams = await Team.find(
         RegEx(Team.team_name, pattern=q, options="i")
     ).to_list()
-    
+
     return teams
 
 # Retorna uma lista de times no modelo TeamOut
+
+
 @router.get("/teams", response_model=List[TeamOut], tags=["Teams & Profiles"])
 async def get_all_teams():
     """Lista todos os times com seus jogadores. Rota pública."""
@@ -110,6 +142,8 @@ async def get_all_teams():
     return teams
 
 # Retorna o team por ID no modelo TeamOut
+
+
 @router.get("/teams/{team_id}", response_model=TeamOut, tags=["Teams & Profiles"])
 async def get_team(team_id: PydanticObjectId):
     """Busca um time específico pelo seu ID. Rota pública."""
@@ -119,6 +153,8 @@ async def get_team(team_id: PydanticObjectId):
     return team
 
 # Retorna os posts de um time específico.
+
+
 @router.get("/teams/{team_id}/posts", response_model=List[PostOut], tags=["Teams & Profiles"])
 # Recebe o ID do time pela URL.
 async def get_posts_by_team(team_id: PydanticObjectId):
@@ -142,6 +178,8 @@ async def get_posts_by_team(team_id: PydanticObjectId):
 
 # Annotated: Ele separa o "o quê" (o tipo final, ex: Team) do "como" (a instrução para obtê-lo, ex: Depends(...)).
 # Retorna o current_team no modelo TeamOut
+
+
 @router.get("/teams/me/profile", response_model=TeamOut, tags=["Profile (Protected)"])
 async def get_my_team_profile(current_team: Annotated[Team, Depends(get_current_team)]):
     """Retorna o perfil do time atualmente logado."""
@@ -149,6 +187,8 @@ async def get_my_team_profile(current_team: Annotated[Team, Depends(get_current_
     return current_team
 
 # Rota para atualizar o perfil do time logado. Responde a requisições PUT.
+
+
 @router.put("/teams/me/profile", response_model=TeamOut, tags=["Profile (Protected)"])
 async def update_my_team_profile(
     # Recebe os dados a serem atualizados, validados pelo modelo TeamUpdate.
@@ -171,7 +211,6 @@ async def update_my_team_profile(
     await current_team.fetch_link(Team.players)
     # Retorna o perfil completo e atualizado.
     return current_team
-
 
 
 # =============================================================================
@@ -282,6 +321,8 @@ async def delete_player_from_team(
 # =============================================================================
 
 # Retorna uma lista de PostOut
+
+
 @router.get("/posts", response_model=List[PostOut], tags=["Posts"])
 async def get_all_posts():
     """Lista todos os posts do feed, do mais novo para o mais antigo. Rota pública."""
@@ -298,6 +339,8 @@ async def get_all_posts():
     return posts_out
 
 # Define a rota, o que ela retorna (PostOut)
+
+
 @router.post("/posts", response_model=PostOut, status_code=status.HTTP_201_CREATED, tags=["Posts (Protected)"])
 # A função recebe os dados do post (PostCreate), o time logado (autenticado)
 # e agora também injeta o cliente Redis para podermos publicar eventos.
@@ -334,6 +377,8 @@ async def create_post(
     return PostOut(**post_dict)
 
 # Retorna no modelo PostOut
+
+
 @router.post("/posts/{post_id}/like", response_model=PostOut, tags=["Posts (Protected)"])
 async def toggle_like_post(post_id: PydanticObjectId, current_team: Annotated[Team, Depends(get_current_team)]):
     """Adiciona ou remove um like de um post."""
@@ -365,6 +410,8 @@ async def toggle_like_post(post_id: PydanticObjectId, current_team: Annotated[Te
     return PostOut(**post_dict)
 
 # Define a rota (com ID do post), o que ela retorna (o Comentário criado)
+
+
 @router.post("/posts/{post_id}/comments", response_model=Comment, status_code=status.HTTP_201_CREATED, tags=["Posts (Protected)"])
 # A função recebe o ID do post da URL, o conteúdo do comentário (CommentCreate) e o time logado (autenticado).
 async def create_comment_on_post(
@@ -403,7 +450,7 @@ async def get_popular_posts(redis_client: Annotated[redis.Redis, Depends(get_red
     cache_key = "popular_posts"
     # Tenta obter o resultado do cache
     cached_result = await redis_client.get(cache_key)
-    
+
     if cached_result:
         # Cache HIT (Encontrou no cache)
         print("CACHE HIT para posts populares!")
@@ -481,11 +528,11 @@ async def get_popular_posts(redis_client: Annotated[redis.Redis, Depends(get_red
     # Converte a lista de objetos para uma string JSON para poder salvar no Redis.
     # `ex=300` define a expiração para 300 segundos (5 minutos).
     await redis_client.set(
-        cache_key, 
-        json.dumps([p.model_dump(mode='json') for p in posts]), 
+        cache_key,
+        json.dumps([p.model_dump(mode='json') for p in posts]),
         ex=300
     )
-    
+
     # Retorna a lista final com os 5 posts mais populares.
     return posts
 
@@ -494,6 +541,8 @@ async def get_popular_posts(redis_client: Annotated[redis.Redis, Depends(get_red
 # =============================================================================
 
 # Define a rota POST com um ID de time dinâmico na URL.
+
+
 @router.post("/friends/request/{target_team_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Friends (Protected)"])
 # A função recebe o ID do time alvo da URL e o time logado (autenticado).
 async def send_friend_request(
@@ -532,15 +581,18 @@ async def send_friend_request(
     return None
 
 # Define a rota POST com o ID do time solicitante na URL.
+
+
 @router.post("/friends/accept/{requester_team_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Friends (Protected)"])
 # A função recebe o ID do solicitante, o time logado (autenticado) e o cliente Redis.
 async def accept_friend_request(
     requester_team_id: PydanticObjectId,
     current_team: Annotated[Team, Depends(get_current_team)],
-    redis_client: Annotated[redis.Redis, Depends(get_redis_client)] # Injeta o cliente Redis
+    redis_client: Annotated[redis.Redis, Depends(
+        get_redis_client)]  # Injeta o cliente Redis
 ):
     """Aceita um pedido de amizade recebido e publica um evento no stream."""
-    
+
     # Busca o documento completo do time que enviou o pedido.
     requester_team = await Team.get(requester_team_id)
     # Validação: Garante que o time solicitante existe.
@@ -593,11 +645,12 @@ async def accept_friend_request(
     # Publica o evento no stream "activity_stream" no Redis.
     await redis_client.xadd("activity_stream", event_data)
 
-
     # Retorna `None` para indicar sucesso sem conteúdo.
     return None
 
 # Retorna a lista de amigos do time que está logado.
+
+
 @router.get("/friends", response_model=List[FriendInfo], tags=["Friends (Protected)"])
 # A dependência `get_current_team` garante a autenticação e nos dá o time logado.
 async def get_my_friends(current_team: Annotated[Team, Depends(get_current_team)]):
@@ -608,6 +661,8 @@ async def get_my_friends(current_team: Annotated[Team, Depends(get_current_team)
     return current_team.friends
 
 # Retorna os pedidos de amizade recebidos pelo time logado.
+
+
 @router.get("/friends/requests", response_model=List[FriendInfo], tags=["Friends (Protected)"])
 async def get_my_friend_requests(current_team: Annotated[Team, Depends(get_current_team)]):
     """Retorna a lista de pedidos de amizade recebidos pelo time logado."""
@@ -617,6 +672,8 @@ async def get_my_friend_requests(current_team: Annotated[Team, Depends(get_curre
     return current_team.friend_requests_received
 
 # Retorna a lista de amigos de um time específico (rota pública).
+
+
 @router.get("/teams/{team_id}/friends", response_model=List[FriendInfo], tags=["Friends"])
 async def get_team_friends(team_id: PydanticObjectId):
     """Retorna a lista de amigos de um time específico."""
@@ -635,6 +692,8 @@ async def get_team_friends(team_id: PydanticObjectId):
 # =============================================================================
 
 # Define a rota POST para criar/propor uma nova scrim.
+
+
 @router.post("/scrims", response_model=ScrimOut, status_code=status.HTTP_201_CREATED, tags=["Scrims (Protected)"])
 # A função recebe os dados da scrim (oponente, data, jogo) e o time logado (proponente).
 async def propose_scrim(
@@ -646,14 +705,16 @@ async def propose_scrim(
     opponent_team = await Team.get(scrim_data.opponent_team_id)
     # Valida se o oponente existe e não é o próprio time.
     if not opponent_team or opponent_team.id == current_team.id:
-        raise HTTPException(status_code=404, detail="Time oponente inválido ou não encontrado.")
+        raise HTTPException(
+            status_code=404, detail="Time oponente inválido ou não encontrado.")
 
     # Cria a instância do documento Scrim...
     scrim = Scrim(
-        proposing_team=current_team, # ...definindo o time logado como proponente.
-        opponent_team=opponent_team, # ...o time alvo como oponente.
-        scrim_datetime=scrim_data.scrim_datetime, # ...a data e hora.
-        game=scrim_data.game, # ...e o jogo.
+        # ...definindo o time logado como proponente.
+        proposing_team=current_team,
+        opponent_team=opponent_team,  # ...o time alvo como oponente.
+        scrim_datetime=scrim_data.scrim_datetime,  # ...a data e hora.
+        game=scrim_data.game,  # ...e o jogo.
         # O status inicial já é "Pendente" por padrão.
     )
     # Insere a nova scrim na coleção 'scrims'.
@@ -661,9 +722,10 @@ async def propose_scrim(
 
     # Carrega os dados completos dos times (proponente e oponente) para a resposta.
     await scrim.fetch_all_links()
-    
+
     # Retorna o objeto da scrim recém-criada, formatado pelo `ScrimOut`.
     return scrim
+
 
 @router.get("/scrims/me", response_model=List[ScrimOut], tags=["Scrims (Protected)"])
 async def get_my_scrims(current_team: Annotated[Team, Depends(get_current_team)]):
@@ -680,7 +742,7 @@ async def get_my_scrims(current_team: Annotated[Team, Depends(get_current_team)]
         # Verifica se o time logado é o proponente OU o oponente.
         if scrim.proposing_team.id == current_team.id or scrim.opponent_team.id == current_team.id:
             my_scrims.append(scrim)
-    
+
     # Etapa 3: Ordena a lista filtrada pela data, do mais novo para o mais antigo.
     my_scrims.sort(key=lambda s: s.scrim_datetime, reverse=True)
 
@@ -688,6 +750,8 @@ async def get_my_scrims(current_team: Annotated[Team, Depends(get_current_team)]
     return my_scrims
 
 # Define a rota POST para aceitar uma scrim, usando o ID da scrim na URL.
+
+
 @router.post("/scrims/{scrim_id}/accept", response_model=ScrimOut, tags=["Scrims (Protected)"])
 # Recebe o ID da scrim da URL e o time logado (quem está aceitando).
 async def accept_scrim(
@@ -699,24 +763,28 @@ async def accept_scrim(
     scrim = await Scrim.get(scrim_id, fetch_links=True)
     if not scrim:
         raise HTTPException(status_code=404, detail="Scrim não encontrada.")
-    
+
     # Etapa de AUTORIZAÇÃO: Garante que apenas o time convidado (opponent_team) pode aceitar.
     if scrim.opponent_team.id != current_team.id:
-        raise HTTPException(status_code=403, detail="Você não tem permissão para aceitar este convite.")
-        
+        raise HTTPException(
+            status_code=403, detail="Você não tem permissão para aceitar este convite.")
+
     # Garante que a scrim ainda esteja com o status "Pendente".
     if scrim.status != ScrimStatusEnum.PENDING:
-        raise HTTPException(status_code=400, detail="Esta scrim não está mais pendente.")
-        
+        raise HTTPException(
+            status_code=400, detail="Esta scrim não está mais pendente.")
+
     # Atualiza o status da scrim para 'Confirmada'.
     scrim.status = ScrimStatusEnum.CONFIRMED
     # Salva a alteração no banco de dados.
     await scrim.save()
-    
+
     # Retorna a scrim com seu novo status.
     return scrim
 
 # Define a rota POST para recusar um convite de scrim.
+
+
 @router.post("/scrims/{scrim_id}/decline", status_code=status.HTTP_204_NO_CONTENT, tags=["Scrims (Protected)"])
 # Recebe o ID da scrim e o time logado (quem está recusando).
 async def decline_scrim(
@@ -728,20 +796,22 @@ async def decline_scrim(
     scrim = await Scrim.get(scrim_id, fetch_links=True)
     if not scrim:
         raise HTTPException(status_code=404, detail="Scrim não encontrada.")
-    
+
     # Etapa de AUTORIZAÇÃO: Garante que apenas o time convidado pode recusar.
     if scrim.opponent_team.id != current_team.id:
-        raise HTTPException(status_code=403, detail="Você não tem permissão para recusar este convite.")
-        
+        raise HTTPException(
+            status_code=403, detail="Você não tem permissão para recusar este convite.")
+
     # Em vez de mudar o status, simplesmente deletamos o convite recusado.
     await scrim.delete()
-    
+
     # Retorna sucesso sem conteúdo.
     return None
 
 # =============================================================================
 # --- Rota de Notificações (Protegida) ---
 # =============================================================================
+
 
 @router.get("/notifications", response_model=NotificationsOut, tags=["Notifications (Protected)"])
 async def get_my_notifications(current_team: Annotated[Team, Depends(get_current_team)]):
@@ -765,15 +835,15 @@ async def get_my_notifications(current_team: Annotated[Team, Depends(get_current
         "friend_requests": friend_requests,
         "scrim_invites": pending_scrims
     }
-    
-    
+
+
 @router.get("/activity-stream", tags=["Activity Stream"])
 async def get_activity_stream(
     redis_client: Annotated[redis.Redis, Depends(get_redis_client)]
 ):
     """Lê e retorna os últimos 15 eventos do stream de atividades."""
     events = await redis_client.xrevrange("activity_stream", count=15)
-    
+
     formatted_events = []
     for event_id, event_data in events:
         formatted_events.append({
