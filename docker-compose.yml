@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  neo4j:
+    image: neo4j:latest
+    container_name: esports-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      # Define o utilizador 'neo4j' e lê a palavra-passe do seu ficheiro .env
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      # A forma correta de instalar o plugin GDS na Community Edition
+      - NEO4J_PLUGINS=["graph-data-science"]
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  neo4j_data:

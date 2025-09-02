@@ -1,7 +1,7 @@
 # app/routes.py - VERSÃO COMPLETA E ORGANIZADA
 
 from fastapi import APIRouter, HTTPException, status, Depends,  Query
-from typing import List, Annotated, Optional
+from typing import List, Annotated, Optional, Dict
 from beanie import PydanticObjectId
 from datetime import timedelta
 import redis.asyncio as redis
@@ -19,6 +19,8 @@ from .models import (
     ValorantRoleEnum, CsRoleEnum, GameEnum,
     Scrim, ScrimCreate, ScrimOut, ScrimStatusEnum, NotificationsOut
 )
+
+from .gds import get_similar_teams
 from .security import hash_password, verify_password, create_access_token, get_current_team
 from fastapi.security import OAuth2PasswordRequestForm
 from .config import settings
@@ -76,6 +78,18 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 # =============================================================================
 # --- Rotas de Times e Perfis ---
 # =============================================================================
+@router.get("/teams/recommendations", response_model=List[Dict], tags=["Teams & Profiles"])
+async def get_team_recommendations(
+    current_team: Annotated[Team, Depends(get_current_team)]
+):
+    """
+    (GDS) Retorna uma lista de até 5 times recomendados para o usuário logado,
+    com base em amigos em comum (Similaridade de Jaccard).
+    """
+    # Chama nossa função do módulo GDS, passando o ID do time logado.
+    recommendations = await get_similar_teams(str(current_team.id))
+    return recommendations
+
 
 @router.get("/teams/search", response_model=List[FriendInfo], tags=["Teams & Profiles"])
 async def search_teams(q: Annotated[str, Query(min_length=1)]):

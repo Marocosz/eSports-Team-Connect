@@ -114,42 +114,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Busca times para a sidebar (excluindo o próprio time).
-     */
+         * Busca recomendações de times usando GDS e as renderiza na sidebar.
+         */
     async function fetchAndRenderDiscoverTeams() {
         if (!discoverTeamsList) return;
+        discoverTeamsList.innerHTML = '<li>Buscando sugestões...</li>'; // Feedback visual
         try {
-            const response = await fetch(`${API_URL}/teams`);
-            if (!response.ok) throw new Error('Falha ao buscar times.');
-            let teams = await response.json();
+            // Chama a NOVA rota de recomendações inteligentes
+            const response = await fetch(`${API_URL}/teams/recommendations`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Falha ao buscar recomendações.');
 
-            // Filtra o próprio time da lista de sugestões, se o perfil já foi carregado
-            if (myProfile) {
-                teams = teams.filter(team => team.id !== myProfile.id);
+            const recommendations = await response.json();
+
+            if (recommendations.length === 0) {
+                discoverTeamsList.innerHTML = '<li>Nenhuma sugestão no momento. Adicione mais amigos para receber recomendações!</li>';
+                return;
             }
 
-            discoverTeamsList.innerHTML = ''; // Limpa o "Carregando..."
-            teams.slice(0, 5).forEach(team => { // Mostra apenas os 5 primeiros
+            discoverTeamsList.innerHTML = '';
+            recommendations.forEach(team => {
                 const li = document.createElement('li');
+                // Converte o score de similaridade (ex: 0.85) para uma porcentagem (85%)
+                const similarityPercentage = Math.round(team.similarity * 100);
 
-                // --- NOVO HTML COM ESTRUTURA VERTICAL ---
                 li.innerHTML = `
                     <div class="discover-item-info">
                         <div class="discover-avatar">${team.team_name.charAt(0).toUpperCase()}</div>
                         <div class="discover-text">
                             <a href="profile.html?id=${team.id}" class="discover-team-link">${team.team_name}</a>
-                            <small>${team.main_game || 'Jogo não definido'}</small>
+                            <!-- Exibe o novo score de similaridade -->
+                            <small class="similarity-score">${similarityPercentage}% de afinidade</small>
                         </div>
                     </div>
                     <button class="btn btn-small add-friend-btn" data-team-id="${team.id}">Adicionar</button>
                 `;
-                // --- FIM DO NOVO HTML ---
-
                 discoverTeamsList.appendChild(li);
             });
+
         } catch (error) {
-            console.error('Erro ao buscar times para descobrir:', error);
-            discoverTeamsList.innerHTML = '<li>Erro ao carregar.</li>';
+            console.error('Erro ao buscar recomendações:', error);
+            discoverTeamsList.innerHTML = '<li>Erro ao carregar sugestões.</li>';
         }
     }
 

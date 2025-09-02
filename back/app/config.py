@@ -10,9 +10,12 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REDIS_URL: str
+    NEO4J_URI: str
+    NEO4J_USERNAME: str
+    NEO4J_PASSWORD: str
 
     # Configuração para dizer ao Pydantic onde encontrar o arquivo .env
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", extra='ignore')
 
 
 # Cria uma instância única das configurações para ser usada no resto do projeto

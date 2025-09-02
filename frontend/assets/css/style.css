@@ -1013,3 +1013,8 @@ a.post-author-link:visited {
     color: var(--color-glow-start);
     font-weight: 600;
 }
+
+.similarity-score {
+    color: var(--color-glow-start);
+    font-weight: 600;
+}
