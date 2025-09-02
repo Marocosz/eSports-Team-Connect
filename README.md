@@ -213,7 +213,7 @@ Para trazer funcionalidades de **recomendação de times** mais inteligentes, fo
 ### 1. Instalação e Configuração (Docker)
 
 O Neo4j foi configurado em container Docker para facilitar o uso do GDS.  
-As credenciais de acesso foram adicionadas ao arquivo %.env% e lidas no projeto pela classe %Settings%:
+As credenciais de acesso foram adicionadas ao arquivo `.env` e lidas no projeto pela classe `Settings`:
 
 ```python
 class Settings(BaseSettings):
